@@ -1,32 +1,25 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calorie Tracker</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    .section { padding: 10px; border-bottom: 1px solid #ccc; }
-    .button { padding: 10px; background: #008CBA; color: white; margin: 5px; border: none; border-radius: 5px; }
-    .button:active { background-color: #005f73; }
-  </style>
+  <link rel="stylesheet" href="style.css"> <!-- Optional: Add your CSS file here -->
+  <script type="module" src="script.js" defer></script> <!-- Main JS file -->
 </head>
 <body>
-  <div class="section" id="breakfast">
-    <h2>Breakfast</h2>
-    <button class="button" onclick="addCalories(300)">Oatmeal - 300 kcal</button>
-  </div>
-  <div class="section" id="morning-tea">
-    <h2>Morning Tea</h2>
-    <button class="button" onclick="addCalories(150)">Apple - 150 kcal</button>
-  </div>
-  <div id="daily-total">Daily Total: 0 kcal</div>
   <div>
-    <button class="button" onclick="saveDailyData()">Save Today's Data</button>
-    <button class="button" onclick="showMonthlyDeficit()">Show Monthly Deficit</button>
-  </div>
+    <h1>Calorie Tracker</h1>
 
-  <script src="script.js"></script>
+    <!-- Container for meal buttons -->
+    <div id="meal-container"></div>
+
+    <!-- Display total calories and deficit -->
+    <div id="daily-total">Daily Total: 0 kcal</div>
+
+    <!-- Buttons for saving data and showing monthly deficit -->
+    <button id="save-data-btn" class="button">Save Today's Data</button>
+    <button id="show-monthly-btn" class="button">Show Monthly Deficit</button>
+  </div>
 </body>
 </html>
