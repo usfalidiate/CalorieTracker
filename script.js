@@ -1,7 +1,7 @@
 let dailyTotal = 0;
 
 const dailyLimit = 2100;
-const sheetURL = 'https://script.google.com/macros/s/AKfycbzgFxgWxuFgdumMFYip54Vbex-cL7QVufgxxvaIhXz8Hnh5odlAY4jYpjbLRgFycc3V3g/exec'; // Your Web App URL
+const sheetURL = 'https://script.google.com/macros/s/AKfycbxNpCBnQjbanPkTQqP1V0EE79Tdpnt8PAtV2kkirxuS7nl3LyM8J_XWHcwVNSTyndj2kw/exec'; // Your Web App URL
 
 function addCalories(calories) {
   dailyTotal += calories;
