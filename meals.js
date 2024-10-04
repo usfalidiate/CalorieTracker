@@ -1,4 +1,5 @@
 // Array of food items with their corresponding calories
+
 export const meals = [
   { name: "Oatmeal", calories: 300 },
   { name: "Apple", calories: 95 },
