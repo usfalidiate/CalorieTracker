@@ -203,6 +203,21 @@
         renderMealButtons();
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
         document.getElementById('show-monthly-btn').addEventListener('click', showMonthlyDeficit);
+
+        // Add event listeners for login and register buttons
+        document.getElementById('login-btn').addEventListener('click', () => {
+          const email = document.getElementById('login-email').value;
+          const password = document.getElementById('login-password').value;
+          loginUser(email, password);
+        });
+
+        document.getElementById('register-btn').addEventListener('click', () => {
+          const email = document.getElementById('register-email').value;
+          const password = document.getElementById('register-password').value;
+          registerUser(email, password);
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', logoutUser);
       });
     </script>
   </div>
