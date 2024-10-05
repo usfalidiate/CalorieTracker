@@ -11,7 +11,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.0/fir
 
 
 // Google Sign-In Function
-async function signInWithGoogle() {
+export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
@@ -22,7 +22,7 @@ async function signInWithGoogle() {
 }
 
 // Logout Function
-async function logoutUser() {
+export async function logoutUser() {
   try {
     await signOut(auth);
     alert("You have logged out.");
