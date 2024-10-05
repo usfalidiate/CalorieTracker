@@ -3,21 +3,51 @@ import { meals } from './meals.js';
 import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js";
 
 import { auth, provider } from './firebase.js';
-import { signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
-
+import { signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
 
 
-
-
-// Google Sign-In Function
+// Google Sign-In with Redirect
 export async function signInWithGoogle() {
   try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    alert("Signed in as " + user.displayName);
+    await signInWithRedirect(auth, provider);
   } catch (error) {
     alert("Error signing in: " + error.message);
+  }
+}
+
+// Handle the result after Google Redirect
+export async function handleRedirectResult() {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result) {
+      const user = result.user;
+      alert("Signed in as " + user.displayName);
+    }
+  } catch (error) {
+    console.error("Error handling redirect result: ", error);
+  }
+}
+
+// Register new user with Email/Password
+export async function registerUser(email, password) {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    alert("Registration successful for user: " + user.email);
+  } catch (error) {
+    alert("Error registering: " + error.message);
+  }
+}
+
+// Login with Email/Password
+export async function loginUser(email, password) {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    alert("Login successful for user: " + user.email);
+  } catch (error) {
+    alert("Error logging in: " + error.message);
   }
 }
 
@@ -27,14 +57,15 @@ export async function logoutUser() {
     await signOut(auth);
     alert("You have logged out.");
   } catch (error) {
-    alert("Error: " + error.message);
+    alert("Error logging out: " + error.message);
   }
 }
 
+// Monitor Auth State
 onAuthStateChanged(auth, (user) => {
   if (user) {
     // User is signed in
-    document.getElementById('auth-status').textContent = `Logged in as ${user.displayName}`;
+    document.getElementById('auth-status').textContent = `Logged in as ${user.displayName || user.email}`;
   } else {
     // User is signed out
     document.getElementById('auth-status').textContent = "Not logged in";
@@ -103,6 +134,7 @@ function renderMealButtons() {
 
 // Initialize buttons and event listeners
 document.addEventListener('DOMContentLoaded', () => {
+  handleRedirectResult(); // Handle Google redirect result on page load
   renderMealButtons();
   document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
   document.getElementById('show-monthly-btn').addEventListener('click', showMonthlyDeficit);
