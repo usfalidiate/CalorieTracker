@@ -2,6 +2,30 @@ import { db } from './firebase.js';
 import { meals } from './meals.js';
 import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js";
 
+import { auth, provider } from './firebase.js';
+import { signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
+
+// Google Sign-In Function
+async function signInWithGoogle() {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    alert("Signed in as " + user.displayName);
+  } catch (error) {
+    alert("Error signing in: " + error.message);
+  }
+}
+
+// Logout Function
+async function logoutUser() {
+  try {
+    await signOut(auth);
+    alert("You have logged out.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+}
+
 
 // Variables for daily calorie tracking
 let dailyTotal = 0;
