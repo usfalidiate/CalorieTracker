@@ -18,3 +18,42 @@ body {
   background-color: #005f73;
 }
 
+/* Style the dropdown button */
+.toggle-button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  font-size: 16px;
+}
+
+/* Style the login menu (hidden by default) */
+.login-menu {
+  display: none;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  margin-top: 10px;
+}
+
+/* Style the form fields and buttons */
+.input-field {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ccc;
+}
+
+.button {
+  margin: 5px 0;
+  padding: 10px;
+  width: 100%;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
