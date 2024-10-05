@@ -12,6 +12,30 @@
   <div>
     <h1>Calorie Tracker</h1>
 
+    <!-- Google Sign-In Button -->
+<div>
+  <button id="google-signin-btn" class="button">Sign in with Google</button>
+</div>
+
+<!-- Logout Button -->
+<div>
+  <button id="logout-btn" class="button">Logout</button>
+</div>
+
+<!-- Auth Status -->
+<div id="auth-status">Not logged in</div>
+
+<script type="module">
+  import { signInWithGoogle, logoutUser } from './script.js';
+
+  // Event listener for Google Sign-In
+  document.getElementById('google-signin-btn').addEventListener('click', signInWithGoogle);
+
+  // Event listener for logout
+  document.getElementById('logout-btn').addEventListener('click', logoutUser);
+</script>
+
+
     <!-- Container for meal buttons -->
     <div id="meal-container"></div>
 
