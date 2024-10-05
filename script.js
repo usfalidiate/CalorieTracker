@@ -2,6 +2,7 @@ import { db } from './firebase.js';
 import { meals } from './meals.js';
 import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js";
 
+
 // Variables for daily calorie tracking
 let dailyTotal = 0;
 const dailyLimit = 2100;
