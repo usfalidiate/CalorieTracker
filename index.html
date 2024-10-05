@@ -4,45 +4,49 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calorie Tracker</title>
-  <link rel="stylesheet" href="style.css"> <!-- Optional: Add your CSS file here -->
+  <link rel="stylesheet" href="style.css"> <!-- Link to your CSS file -->
 </head>
 <body>
   <div>
     <h1>Calorie Tracker</h1>
 
-    <!-- Google Sign-In Button -->
-    <div>
-      <button id="google-signin-btn" class="button">Sign in with Google</button>
+    <!-- Toggle button to show/hide the login menu -->
+    <button id="toggle-login-menu" class="toggle-button">Show Login/Register</button>
+
+    <!-- Login/Registration Dropdown Menu -->
+    <div id="login-menu" class="login-menu">
+      <!-- Google Sign-In Button -->
+      <div>
+        <button id="google-signin-btn" class="button">Sign in with Google</button>
+      </div>
+
+      <!-- Email/Password Login Form -->
+      <h3>Login with Email</h3>
+      <div>
+        <input type="email" id="login-email" class="input-field" placeholder="Email" />
+        <input type="password" id="login-password" class="input-field" placeholder="Password" />
+        <button id="login-btn" class="button">Login</button>
+      </div>
+
+      <!-- Email/Password Registration Form -->
+      <h3>Register with Email</h3>
+      <div>
+        <input type="email" id="register-email" class="input-field" placeholder="Email" />
+        <input type="password" id="register-password" class="input-field" placeholder="Password" />
+        <button id="register-btn" class="button">Register</button>
+      </div>
+
+      <!-- Logout Button -->
+      <div>
+        <button id="logout-btn" class="button">Logout</button>
+      </div>
+
+      <!-- Auth Status -->
+      <div id="auth-status">Not logged in</div>
     </div>
 
-    <!-- Email/Password Login Form -->
-    <h3>Login with Email</h3>
-    <div>
-      <input type="email" id="login-email" placeholder="Email" />
-      <input type="password" id="login-password" placeholder="Password" />
-      <button id="login-btn" class="button">Login</button>
-    </div>
-
-    <!-- Email/Password Registration Form -->
-    <h3>Register with Email</h3>
-    <div>
-      <input type="email" id="register-email" placeholder="Email" />
-      <input type="password" id="register-password" placeholder="Password" />
-      <button id="register-btn" class="button">Register</button>
-    </div>
-
-    <!-- Logout Button -->
-    <div>
-      <button id="logout-btn" class="button">Logout</button>
-    </div>
-
-    <!-- Auth Status -->
-    <div id="auth-status">Not logged in</div>
-
-    <!-- Container for meal buttons -->
+    <!-- Container for meal buttons, total calories, and deficit data -->
     <div id="meal-container"></div>
-
-    <!-- Display total calories and deficit -->
     <div id="daily-total">Daily Total: 0 kcal</div>
 
     <!-- Buttons for saving data and showing monthly deficit -->
@@ -57,6 +61,20 @@
       import { auth, provider } from './firebase.js';
       import { signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
       import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
+
+      // Toggle visibility of the login menu
+      document.getElementById('toggle-login-menu').addEventListener('click', () => {
+        const loginMenu = document.getElementById('login-menu');
+        const toggleButton = document.getElementById('toggle-login-menu');
+        
+        if (loginMenu.style.display === 'none') {
+          loginMenu.style.display = 'block';
+          toggleButton.textContent = 'Hide Login/Register';
+        } else {
+          loginMenu.style.display = 'none';
+          toggleButton.textContent = 'Show Login/Register';
+        }
+      });
 
       // Google Sign-In with Redirect
       export async function signInWithGoogle() {
