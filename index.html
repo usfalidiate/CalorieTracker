@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calorie Tracker</title>
   <link rel="stylesheet" href="style.css"> <!-- Optional: Add your CSS file here -->
-  <script type="module" src="script.js" defer></script> <!-- Main JS file -->
 </head>
 <body>
   <div>
@@ -50,34 +49,194 @@
     <button id="save-data-btn" class="button">Save Today's Data</button>
     <button id="show-monthly-btn" class="button">Show Monthly Deficit</button>
 
-    <!-- Script to handle event listeners for Google Sign-In, Email/Password, and Logout -->
     <script type="module">
-      import { signInWithGoogle, loginUser, registerUser, logoutUser, handleRedirectResult } from './script.js';
+      // Firebase and Firestore imports
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js";
+      import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js";
+      import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
 
-      // Handle Google Sign-In via Redirect
-      window.onload = function() {
-        handleRedirectResult();
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "your-api-key",
+        authDomain: "your-auth-domain",
+        projectId: "your-project-id",
+        storageBucket: "your-storage-bucket",
+        messagingSenderId: "your-messaging-sender-id",
+        appId: "your-app-id"
       };
 
-      // Event listener for Google Sign-In
-      document.getElementById('google-signin-btn').addEventListener('click', signInWithGoogle);
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const auth = getAuth(app);
+      const provider = new GoogleAuthProvider();
 
-      // Event listener for Email/Password Login
-      document.getElementById('login-btn').addEventListener('click', () => {
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        loginUser(email, password);
+      // Variables for daily calorie tracking
+      let dailyTotal = 0;
+      const dailyLimit = 2100;
+
+      // Function to add calories and update the display
+      function addCalories(calories) {
+        dailyTotal += calories;
+        updateDailyTotal();
+      }
+
+      function updateDailyTotal() {
+        document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+      }
+
+      // Save daily data to Firestore for the logged-in user
+      async function saveDailyData() {
+        const user = auth.currentUser;
+        if (!user) {
+          alert('You must be logged in to save data.');
+          return;
+        }
+
+        const deficit = dailyLimit - dailyTotal;
+        const date = new Date().toLocaleDateString();
+
+        try {
+          await addDoc(collection(db, `users/${user.uid}/calorieData`), {
+            date: date,
+            total: dailyTotal,
+            deficit: deficit
+          });
+          alert('Data saved successfully');
+        } catch (error) {
+          console.error("Error saving document: ", error);
+          alert('Failed to save data');
+        }
+      }
+
+      // Show monthly calorie deficit data for the logged-in user only
+      async function showMonthlyDeficit() {
+        const user = auth.currentUser;
+        if (!user) {
+          alert('You must be logged in to view your data.');
+          return;
+        }
+
+        try {
+          const querySnapshot = await getDocs(collection(db, `users/${user.uid}/calorieData`));
+          let results = "";
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            results += `Date: ${data.date}, Deficit: ${data.deficit} kcal\n`;
+          });
+          if (results) {
+            alert(results);
+          } else {
+            alert("No data available for this user.");
+          }
+        } catch (error) {
+          console.error("Error retrieving documents: ", error);
+          alert('Failed to fetch data');
+        }
+      }
+
+      // Render meal buttons dynamically
+      function renderMealButtons() {
+        const meals = [
+          { name: "Breakfast", calories: 300 },
+          { name: "Lunch", calories: 600 },
+          { name: "Dinner", calories: 700 },
+          { name: "Snack", calories: 200 }
+        ];
+
+        const mealContainer = document.getElementById('meal-container');
+        meals.forEach(meal => {
+          const button = document.createElement('button');
+          button.textContent = `${meal.name} - ${meal.calories} kcal`;
+          button.className = "button";
+          button.onclick = () => addCalories(meal.calories);
+          mealContainer.appendChild(button);
+        });
+      }
+
+      // Google Sign-In with Redirect
+      export async function signInWithGoogle() {
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (error) {
+          alert("Error signing in: " + error.message);
+        }
+      }
+
+      // Handle Google redirect result
+      export async function handleRedirectResult() {
+        try {
+          const result = await getRedirectResult(auth);
+          if (result) {
+            const user = result.user;
+            alert("Signed in as " + user.displayName);
+          }
+        } catch (error) {
+          console.error("Error handling redirect result: ", error);
+        }
+      }
+
+      // Register new user with Email/Password
+      export async function registerUser(email, password) {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          alert("Registration successful for user: " + user.email);
+        } catch (error) {
+          alert("Error registering: " + error.message);
+        }
+      }
+
+      // Login with Email/Password
+      export async function loginUser(email, password) {
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          alert("Login successful for user: " + user.email);
+        } catch (error) {
+          alert("Error logging in: " + error.message);
+        }
+      }
+
+      // Logout user
+      export async function logoutUser() {
+        try {
+          await signOut(auth);
+          alert("You have logged out.");
+        } catch (error) {
+          console.error("Error logging out: ", error);
+          alert("Error logging out: " + error.message);
+        }
+      }
+
+      // Monitor Auth State
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          document.getElementById('auth-status').textContent = `Logged in as ${user.displayName || user.email}`;
+        } else {
+          document.getElementById('auth-status').textContent = "Not logged in";
+        }
       });
 
-      // Event listener for Email/Password Registration
-      document.getElementById('register-btn').addEventListener('click', () => {
-        const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value;
-        registerUser(email, password);
+      // Initialize buttons and event listeners
+      document.addEventListener('DOMContentLoaded', () => {
+        handleRedirectResult(); // Handle Google redirect result on page load
+        renderMealButtons();
+        document.getElementById('google-signin-btn').addEventListener('click', signInWithGoogle);
+        document.getElementById('login-btn').addEventListener('click', () => {
+          const email = document.getElementById('login-email').value;
+          const password = document.getElementById('login-password').value;
+          loginUser(email, password);
+        });
+        document.getElementById('register-btn').addEventListener('click', () => {
+          const email = document.getElementById('register-email').value;
+          const password = document.getElementById('register-password').value;
+          registerUser(email, password);
+        });
+        document.getElementById('logout-btn').addEventListener('click', logoutUser);
+        document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
+        document.getElementById('show-monthly-btn').addEventListener('click', showMonthlyDeficit);
       });
-
-      // Event listener for Logout
-      document.getElementById('logout-btn').addEventListener('click', logoutUser);
     </script>
   </div>
 </body>
