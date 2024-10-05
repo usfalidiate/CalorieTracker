@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -13,28 +12,33 @@
     <h1>Calorie Tracker</h1>
 
     <!-- Google Sign-In Button -->
-<div>
-  <button id="google-signin-btn" class="button">Sign in with Google</button>
-</div>
+    <div>
+      <button id="google-signin-btn" class="button">Sign in with Google</button>
+    </div>
 
-<!-- Logout Button -->
-<div>
-  <button id="logout-btn" class="button">Logout</button>
-</div>
+    <!-- Email/Password Login Form -->
+    <h3>Login with Email</h3>
+    <div>
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Password" />
+      <button id="login-btn" class="button">Login</button>
+    </div>
 
-<!-- Auth Status -->
-<div id="auth-status">Not logged in</div>
+    <!-- Email/Password Registration Form -->
+    <h3>Register with Email</h3>
+    <div>
+      <input type="email" id="register-email" placeholder="Email" />
+      <input type="password" id="register-password" placeholder="Password" />
+      <button id="register-btn" class="button">Register</button>
+    </div>
 
-<script type="module">
-  import { signInWithGoogle, logoutUser } from './script.js';
+    <!-- Logout Button -->
+    <div>
+      <button id="logout-btn" class="button">Logout</button>
+    </div>
 
-  // Event listener for Google Sign-In
-  document.getElementById('google-signin-btn').addEventListener('click', signInWithGoogle);
-
-  // Event listener for logout
-  document.getElementById('logout-btn').addEventListener('click', logoutUser);
-</script>
-
+    <!-- Auth Status -->
+    <div id="auth-status">Not logged in</div>
 
     <!-- Container for meal buttons -->
     <div id="meal-container"></div>
@@ -45,6 +49,36 @@
     <!-- Buttons for saving data and showing monthly deficit -->
     <button id="save-data-btn" class="button">Save Today's Data</button>
     <button id="show-monthly-btn" class="button">Show Monthly Deficit</button>
+
+    <!-- Script to handle event listeners for Google Sign-In, Email/Password, and Logout -->
+    <script type="module">
+      import { signInWithGoogle, loginUser, registerUser, logoutUser, handleRedirectResult } from './script.js';
+
+      // Handle Google Sign-In via Redirect
+      window.onload = function() {
+        handleRedirectResult();
+      };
+
+      // Event listener for Google Sign-In
+      document.getElementById('google-signin-btn').addEventListener('click', signInWithGoogle);
+
+      // Event listener for Email/Password Login
+      document.getElementById('login-btn').addEventListener('click', () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        loginUser(email, password);
+      });
+
+      // Event listener for Email/Password Registration
+      document.getElementById('register-btn').addEventListener('click', () => {
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        registerUser(email, password);
+      });
+
+      // Event listener for Logout
+      document.getElementById('logout-btn').addEventListener('click', logoutUser);
+    </script>
   </div>
 </body>
 </html>
