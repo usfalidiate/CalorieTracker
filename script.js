@@ -5,7 +5,6 @@ import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/
 import { auth, provider } from './firebase.js';
 import { signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
 
-import { auth } from './firebase.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
 
 
