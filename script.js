@@ -86,13 +86,20 @@ function updateDailyTotal() {
   document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
 }
 
-// Save daily data to Firestore
+// Save daily data to Firestore for the logged-in user
 async function saveDailyData() {
+  const user = auth.currentUser;
+  if (!user) {
+    alert('You must be logged in to save data.');
+    return;
+  }
+
   const deficit = dailyLimit - dailyTotal;
   const date = new Date().toLocaleDateString();
 
   try {
-    await addDoc(collection(db, "calorieData"), {
+    // Save data under the user's specific collection
+    await addDoc(collection(db, `users/${user.uid}/calorieData`), {
       date: date,
       total: dailyTotal,
       deficit: deficit
@@ -104,21 +111,34 @@ async function saveDailyData() {
   }
 }
 
-// Show monthly calorie deficit data
+
+// Show monthly calorie deficit data for the logged-in user only
 async function showMonthlyDeficit() {
+  const user = auth.currentUser;
+  if (!user) {
+    alert('You must be logged in to view your data.');
+    return;
+  }
+
   try {
-    const querySnapshot = await getDocs(collection(db, "calorieData"));
+    // Retrieve data for the specific logged-in user
+    const querySnapshot = await getDocs(collection(db, `users/${user.uid}/calorieData`));
     let results = "";
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       results += `Date: ${data.date}, Deficit: ${data.deficit} kcal\n`;
     });
-    alert(results);
+    if (results) {
+      alert(results);
+    } else {
+      alert("No data available for this user.");
+    }
   } catch (error) {
     console.error("Error retrieving documents: ", error);
     alert('Failed to fetch data');
   }
 }
+
 
 // Render meal buttons dynamically
 function renderMealButtons() {
