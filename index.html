@@ -252,8 +252,8 @@
       }
 
       // Initialize buttons and event listeners
-      handleRedirectResult(); // Handle Google redirect result on page load
       document.addEventListener('DOMContentLoaded', () => {
+        handleRedirectResult(); // Handle Google redirect result on page load
         renderMealButtons();
 
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
