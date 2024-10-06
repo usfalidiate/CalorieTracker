@@ -233,6 +233,22 @@ export async function logoutUser() {
   }
 }
 
+
+      // Toggle visibility of the login menu
+document.getElementById('toggle-login-menu').addEventListener('click', () => {
+  const loginMenu = document.getElementById('login-menu');
+  const toggleButton = document.getElementById('toggle-login-menu');
+
+  if (loginMenu.style.display === 'none' || loginMenu.style.display === '') {
+    loginMenu.style.display = 'block'; // Show the menu
+    toggleButton.textContent = 'Hide Login/Register';
+  } else {
+    loginMenu.style.display = 'none'; // Hide the menu
+    toggleButton.textContent = 'Show Login/Register';
+  }
+});
+
+
     </script>
   </div>
 </body>
