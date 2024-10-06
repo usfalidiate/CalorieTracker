@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calorie Tracker</title>
   <link rel="stylesheet" href="style.css"> <!-- Link to your CSS file -->
+  <style>
+    .button:disabled {
+      background-color: gray;
+      cursor: not-allowed;
+    }
+    #auth-status {
+      color: green;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
   <div>
@@ -15,11 +25,10 @@
       1kg = 7700 kcal deficit, and daily calorie intake = 2400 kcal
     </div>
 
-    <!-- Toggle button to show/hide the login menu -->
-    <button id="toggle-login-menu" class="toggle-button">Show Login/Register</button>
-
-    <!-- Login/Registration Dropdown Menu -->
-    <div id="login-menu" class="login-menu">
+    <!-- Full screen login modal -->
+    <div id="login-screen" class="login-screen">
+      <h2>Please login to continue</h2>
+      
       <!-- Google Sign-In Button -->
       <div>
         <button id="google-signin-btn" class="button">Sign in with Google</button>
@@ -41,22 +50,17 @@
         <button id="register-btn" class="button">Register</button>
       </div>
 
-      <!-- Logout Button -->
-      <div>
-        <button id="logout-btn" class="button">Logout</button>
-      </div>
-
       <!-- Auth Status -->
       <div id="auth-status">Not logged in</div>
     </div>
 
     <!-- Container for meal buttons, total calories, and deficit data -->
-    <div id="meal-container"></div>
-    <div id="daily-total">Daily Total: 0 kcal</div>
+    <div id="meal-container" style="display:none;"></div>
+    <div id="daily-total" style="display:none;">Daily Total: 0 kcal</div>
 
     <!-- Buttons for saving data and showing monthly deficit -->
-    <button id="save-data-btn" class="button">Save Today's Data</button>
-    <button id="show-monthly-btn" class="button">Show Monthly Deficit</button>
+    <button id="save-data-btn" class="button" style="display:none;" disabled>Save Today's Data</button>
+    <button id="show-monthly-btn" class="button" style="display:none;" disabled>Show Monthly Deficit</button>
 
     <script type="module">
       // Firebase and Firestore imports
@@ -69,7 +73,51 @@
 
       let dailyTotal = 0;
       const dailyLimit = 2400;
-      const oneKgDeficit = 7700;
+      let selectedMeals = [];
+
+      // Function to show feedback to the user
+      function showFeedback(message, isError = false) {
+        const feedbackDiv = document.getElementById('auth-status');
+        feedbackDiv.textContent = message;
+        feedbackDiv.style.color = isError ? 'red' : 'green';
+      }
+
+      // Check authentication state and show/hide login screen
+      onAuthStateChanged(auth, (user) => {
+        const loginScreen = document.getElementById('login-screen');
+        const mealContainer = document.getElementById('meal-container');
+        const dailyTotalDiv = document.getElementById('daily-total');
+        const saveDataBtn = document.getElementById('save-data-btn');
+        const showMonthlyBtn = document.getElementById('show-monthly-btn');
+        
+        if (user) {
+          // User is logged in
+          loginScreen.style.display = 'none';
+          mealContainer.style.display = 'block';
+          dailyTotalDiv.style.display = 'block';
+          saveDataBtn.style.display = 'block';
+          showMonthlyBtn.style.display = 'block';
+          saveDataBtn.disabled = false;
+          showMonthlyBtn.disabled = false;
+
+          // Load calorie data after login
+          loadCalorieData();
+        } else {
+          // User is not logged in, show login screen
+          loginScreen.style.display = 'block';
+          saveDataBtn.disabled = true;
+          showMonthlyBtn.disabled = true;
+        }
+      });
+
+      // Google Sign-In with Redirect
+      document.getElementById('google-signin-btn').addEventListener('click', async () => {
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (error) {
+          showFeedback(`Error with Google Sign-In: ${error.message}`, true);
+        }
+      });
 
       // Handle the result after Google Sign-In Redirect
       async function handleRedirectResult() {
@@ -77,7 +125,7 @@
           const result = await getRedirectResult(auth);
           if (result) {
             const user = result.user;
-            alert(`Signed in as ${user.displayName}`);
+            showFeedback(`Signed in as ${user.displayName}`);
           }
         } catch (error) {
           console.error("Error handling redirect result: ", error);
@@ -88,7 +136,7 @@
       async function loadCalorieData() {
         const user = auth.currentUser;
         if (!user) {
-          alert('You must be logged in to load data.');
+          showFeedback('You must be logged in to load data.', true);
           return;
         }
 
@@ -104,8 +152,14 @@
           document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
           highlightEatenMeals(data.eatenMeals || []);
         } else {
-          // No daily data yet for today
+          // No daily data yet for today, create default
           dailyTotal = 0;
+          await setDoc(dailyDocRef, {
+            date: today,
+            total: dailyTotal,
+            deficit: dailyLimit - dailyTotal,
+            eatenMeals: []
+          });
           document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
         }
 
@@ -114,9 +168,9 @@
         const monthlyDocSnap = await getDoc(monthlyDocRef);
 
         if (monthlyDocSnap.exists()) {
-          alert(`Monthly deficit so far: ${monthlyDocSnap.data().monthlyDeficit} kcal`);
+          showFeedback(`Monthly deficit so far: ${monthlyDocSnap.data().monthlyDeficit} kcal`);
         } else {
-          alert('No monthly data available yet.');
+          showFeedback('No monthly data available yet.');
         }
       }
 
@@ -124,7 +178,7 @@
       async function saveDailyData() {
         const user = auth.currentUser;
         if (!user) {
-          alert('You must be logged in to save data.');
+          showFeedback('You must be logged in to save data.', true);
           return;
         }
 
@@ -151,20 +205,20 @@
 
           await setDoc(monthlyDocRef, { monthlyDeficit });
 
-          alert('Data saved successfully');
+          showFeedback('Data saved successfully');
         } catch (error) {
           console.error("Error saving document: ", error);
-          alert('Failed to save data');
+          showFeedback('Failed to save data', true);
         }
       }
 
       // Track selected meals for the day
-      let selectedMeals = [];
-
       function addCalories(meal) {
-        dailyTotal += meal.calories;
-        selectedMeals.push(meal.name);
-        updateDailyTotal();
+        if (!selectedMeals.includes(meal.name)) {
+          dailyTotal += meal.calories;
+          selectedMeals.push(meal.name);
+          updateDailyTotal();
+        }
       }
 
       function highlightEatenMeals(eatenMeals) {
@@ -198,10 +252,9 @@
       }
 
       // Initialize buttons and event listeners
+      handleRedirectResult(); // Handle Google redirect result on page load
       document.addEventListener('DOMContentLoaded', () => {
-        handleRedirectResult(); // Handle Google redirect result on page load
         renderMealButtons();
-        loadCalorieData(); // Load existing daily and monthly data
 
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
         document.getElementById('show-monthly-btn').addEventListener('click', loadCalorieData);
@@ -223,57 +276,36 @@
       });
 
       // Login user with Email/Password
-export async function loginUser(email, password) {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    alert(`Login successful for user: ${user.email}`);
-  } catch (error) {
-    alert(`Error logging in: ${error.message}`);
-  }
-};
+      export async function loginUser(email, password) {
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          showFeedback(`Login successful for user: ${user.email}`);
+        } catch (error) {
+          showFeedback(`Error logging in: ${error.message}`, true);
+        }
+      }
 
-
-      
       // Logout Function
-export async function logoutUser() {
-  try {
-    await signOut(auth);
-    alert("You have logged out.");
-  } catch (error) {
-    alert("Error logging out: " + error.message);
-  }
-};
-
-
-      // Toggle visibility of the login menu
-document.getElementById('toggle-login-menu').addEventListener('click', () => {
-  const loginMenu = document.getElementById('login-menu');
-  const toggleButton = document.getElementById('toggle-login-menu');
-
-  if (loginMenu.style.display === 'none' || loginMenu.style.display === '') {
-    loginMenu.style.display = 'block'; // Show the menu
-    toggleButton.textContent = 'Hide Login/Register';
-  } else {
-    loginMenu.style.display = 'none'; // Hide the menu
-    toggleButton.textContent = 'Show Login/Register';
-  }
-});
-
+      export async function logoutUser() {
+        try {
+          await signOut(auth);
+          showFeedback("You have logged out.");
+        } catch (error) {
+          showFeedback("Error logging out: " + error.message, true);
+        }
+      }
 
       // Register new user with Email/Password
-export async function registerUser(email, password) {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    alert(`Registration successful for user: ${user.email}`);
-  } catch (error) {
-    alert(`Error registering: ${error.message}`);
-  }
-}
-
-
-
+      export async function registerUser(email, password) {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          showFeedback(`Registration successful for user: ${user.email}`);
+        } catch (error) {
+          showFeedback(`Error registering: ${error.message}`, true);
+        }
+      }
     </script>
   </div>
 </body>
