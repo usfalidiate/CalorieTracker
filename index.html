@@ -72,9 +72,8 @@
         feedbackDiv.style.color = isError ? 'red' : 'green';
       }
 
-      document.addEventListener('DOMContentLoaded', () => {
-
-        // Check authentication state and show/hide login screen
+      // Function to load Firebase authentication state
+      function initializeAuthState() {
         onAuthStateChanged(auth, (user) => {
           const loginScreen = document.getElementById('login-screen');
           const mealContainer = document.getElementById('meal-container');
@@ -101,6 +100,11 @@
             showMonthlyBtn.disabled = true;
           }
         });
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Firebase authentication state
+        initializeAuthState();
 
         // Google Sign-In with Redirect
         document.getElementById('google-signin-btn').addEventListener('click', async () => {
@@ -123,8 +127,6 @@
           const password = document.getElementById('register-password').value;
           registerUser(email, password);
         });
-
-        document.getElementById('logout-btn').addEventListener('click', logoutUser);
 
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
         document.getElementById('show-monthly-btn').addEventListener('click', loadCalorieData);
