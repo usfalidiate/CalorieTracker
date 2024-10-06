@@ -10,6 +10,32 @@
       background-color: gray;
       cursor: not-allowed;
     }
+
+    /* Full screen login styling */
+    .login-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .login-screen h2 {
+      margin-bottom: 20px;
+    }
+
+    .button {
+      margin: 5px;
+    }
+
+    /* Info and feedback messages */
     #auth-status {
       color: green;
       margin-top: 10px;
@@ -82,55 +108,65 @@
         feedbackDiv.style.color = isError ? 'red' : 'green';
       }
 
-      // Check authentication state and show/hide login screen
-      onAuthStateChanged(auth, (user) => {
-        const loginScreen = document.getElementById('login-screen');
-        const mealContainer = document.getElementById('meal-container');
-        const dailyTotalDiv = document.getElementById('daily-total');
-        const saveDataBtn = document.getElementById('save-data-btn');
-        const showMonthlyBtn = document.getElementById('show-monthly-btn');
-        
-        if (user) {
-          // User is logged in
-          loginScreen.style.display = 'none';
-          mealContainer.style.display = 'block';
-          dailyTotalDiv.style.display = 'block';
-          saveDataBtn.style.display = 'block';
-          showMonthlyBtn.style.display = 'block';
-          saveDataBtn.disabled = false;
-          showMonthlyBtn.disabled = false;
+      document.addEventListener('DOMContentLoaded', () => {
 
-          // Load calorie data after login
-          loadCalorieData();
-        } else {
-          // User is not logged in, show login screen
-          loginScreen.style.display = 'block';
-          saveDataBtn.disabled = true;
-          showMonthlyBtn.disabled = true;
-        }
-      });
+        // Check authentication state and show/hide login screen
+        onAuthStateChanged(auth, (user) => {
+          const loginScreen = document.getElementById('login-screen');
+          const mealContainer = document.getElementById('meal-container');
+          const dailyTotalDiv = document.getElementById('daily-total');
+          const saveDataBtn = document.getElementById('save-data-btn');
+          const showMonthlyBtn = document.getElementById('show-monthly-btn');
+          
+          if (user) {
+            // User is logged in
+            loginScreen.style.display = 'none';
+            mealContainer.style.display = 'block';
+            dailyTotalDiv.style.display = 'block';
+            saveDataBtn.style.display = 'block';
+            showMonthlyBtn.style.display = 'block';
+            saveDataBtn.disabled = false;
+            showMonthlyBtn.disabled = false;
 
-      // Google Sign-In with Redirect
-      document.getElementById('google-signin-btn').addEventListener('click', async () => {
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (error) {
-          showFeedback(`Error with Google Sign-In: ${error.message}`, true);
-        }
-      });
-
-      // Handle the result after Google Sign-In Redirect
-      async function handleRedirectResult() {
-        try {
-          const result = await getRedirectResult(auth);
-          if (result) {
-            const user = result.user;
-            showFeedback(`Signed in as ${user.displayName}`);
+            // Load calorie data after login
+            loadCalorieData();
+          } else {
+            // User is not logged in, show login screen
+            loginScreen.style.display = 'block';
+            saveDataBtn.disabled = true;
+            showMonthlyBtn.disabled = true;
           }
-        } catch (error) {
-          console.error("Error handling redirect result: ", error);
-        }
-      }
+        });
+
+        // Google Sign-In with Redirect
+        document.getElementById('google-signin-btn').addEventListener('click', async () => {
+          try {
+            await signInWithRedirect(auth, provider);
+          } catch (error) {
+            showFeedback(`Error with Google Sign-In: ${error.message}`, true);
+          }
+        });
+
+        // Add event listeners for login and register buttons
+        document.getElementById('login-btn').addEventListener('click', () => {
+          const email = document.getElementById('login-email').value;
+          const password = document.getElementById('login-password').value;
+          loginUser(email, password);
+        });
+
+        document.getElementById('register-btn').addEventListener('click', () => {
+          const email = document.getElementById('register-email').value;
+          const password = document.getElementById('register-password').value;
+          registerUser(email, password);
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', logoutUser);
+
+        document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
+        document.getElementById('show-monthly-btn').addEventListener('click', loadCalorieData);
+
+        renderMealButtons(); // Render meal buttons after the DOM is loaded
+      });
 
       // Load daily and monthly calorie deficit from Firestore
       async function loadCalorieData() {
@@ -163,7 +199,7 @@
           document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
         }
 
-        // Load the monthly deficit data (for example purposes)
+        // Load the monthly deficit data
         const monthlyDocRef = doc(db, `users/${user.uid}/calorieData`, 'monthly');
         const monthlyDocSnap = await getDoc(monthlyDocRef);
 
@@ -214,11 +250,9 @@
 
       // Track selected meals for the day
       function addCalories(meal) {
-        if (!selectedMeals.includes(meal.name)) {
-          dailyTotal += meal.calories;
-          selectedMeals.push(meal.name);
-          updateDailyTotal();
-        }
+        dailyTotal += meal.calories;
+        selectedMeals.push(meal.name);
+        updateDailyTotal();
       }
 
       function highlightEatenMeals(eatenMeals) {
@@ -251,32 +285,8 @@
         });
       }
 
-      // Initialize buttons and event listeners
-      document.addEventListener('DOMContentLoaded', () => {
-        handleRedirectResult(); // Handle Google redirect result on page load
-        renderMealButtons();
-
-        document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
-        document.getElementById('show-monthly-btn').addEventListener('click', loadCalorieData);
-
-        // Add event listeners for login and register buttons
-        document.getElementById('login-btn').addEventListener('click', () => {
-          const email = document.getElementById('login-email').value;
-          const password = document.getElementById('login-password').value;
-          loginUser(email, password);
-        });
-
-        document.getElementById('register-btn').addEventListener('click', () => {
-          const email = document.getElementById('register-email').value;
-          const password = document.getElementById('register-password').value;
-          registerUser(email, password);
-        });
-
-        document.getElementById('logout-btn').addEventListener('click', logoutUser);
-      });
-
       // Login user with Email/Password
-      export async function loginUser(email, password) {
+      async function loginUser(email, password) {
         try {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
@@ -287,7 +297,7 @@
       }
 
       // Logout Function
-      export async function logoutUser() {
+      async function logoutUser() {
         try {
           await signOut(auth);
           showFeedback("You have logged out.");
@@ -297,7 +307,7 @@
       }
 
       // Register new user with Email/Password
-      export async function registerUser(email, password) {
+      async function registerUser(email, password) {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
