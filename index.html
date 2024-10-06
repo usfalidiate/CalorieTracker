@@ -222,7 +222,19 @@
         document.getElementById('logout-btn').addEventListener('click', logoutUser);
       });
 
+      // Login user with Email/Password
+export async function loginUser(email, password) {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    alert(`Login successful for user: ${user.email}`);
+  } catch (error) {
+    alert(`Error logging in: ${error.message}`);
+  }
+};
 
+
+      
       // Logout Function
 export async function logoutUser() {
   try {
@@ -231,7 +243,7 @@ export async function logoutUser() {
   } catch (error) {
     alert("Error logging out: " + error.message);
   }
-}
+};
 
 
       // Toggle visibility of the login menu
