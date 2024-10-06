@@ -9,6 +9,11 @@
 <body>
   <div>
     <h1>Calorie Tracker</h1>
+    
+    <!-- Info Text Box -->
+    <div class="info-box">
+      1kg = 7700 kcal deficit, and daily calorie intake = 2400 kcal
+    </div>
 
     <!-- Toggle button to show/hide the login menu -->
     <button id="toggle-login-menu" class="toggle-button">Show Login/Register</button>
@@ -57,103 +62,52 @@
       // Firebase and Firestore imports
       import { db } from './firebase.js';
       import { meals } from './meals.js';
-      import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js";
+      import { collection, doc, getDoc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js";
       import { auth, provider } from './firebase.js';
       import { signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
       import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
 
-      // Toggle visibility of the login menu
-      document.getElementById('toggle-login-menu').addEventListener('click', () => {
-        const loginMenu = document.getElementById('login-menu');
-        const toggleButton = document.getElementById('toggle-login-menu');
-        
-        if (loginMenu.style.display === 'none') {
-          loginMenu.style.display = 'block';
-          toggleButton.textContent = 'Hide Login/Register';
-        } else {
-          loginMenu.style.display = 'none';
-          toggleButton.textContent = 'Show Login/Register';
-        }
-      });
-
-      // Google Sign-In with Redirect
-      export async function signInWithGoogle() {
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (error) {
-          alert("Error signing in: " + error.message);
-        }
-      }
-
-      // Handle the result after Google Redirect
-      export async function handleRedirectResult() {
-        try {
-          const result = await getRedirectResult(auth);
-          if (result) {
-            const user = result.user;
-            alert("Signed in as " + user.displayName);
-          }
-        } catch (error) {
-          console.error("Error handling redirect result: ", error);
-        }
-      }
-
-      // Register new user with Email/Password
-      export async function registerUser(email, password) {
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
-          alert("Registration successful for user: " + user.email);
-        } catch (error) {
-          alert("Error registering: " + error.message);
-        }
-      }
-
-      // Login with Email/Password
-      export async function loginUser(email, password) {
-        try {
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
-          alert("Login successful for user: " + user.email);
-        } catch (error) {
-          alert("Error logging in: " + error.message);
-        }
-      }
-
-      // Logout Function
-      export async function logoutUser() {
-        try {
-          await signOut(auth);
-          alert("You have logged out.");
-        } catch (error) {
-          alert("Error logging out: " + error.message);
-        }
-      }
-
-      // Monitor Auth State
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          document.getElementById('auth-status').textContent = `Logged in as ${user.displayName || user.email}`;
-        } else {
-          document.getElementById('auth-status').textContent = "Not logged in";
-        }
-      });
-
-      // Variables for daily calorie tracking
       let dailyTotal = 0;
-      const dailyLimit = 2100;
+      const dailyLimit = 2400;
+      const oneKgDeficit = 7700;
 
-      // Function to add calories and update the display
-      function addCalories(calories) {
-        dailyTotal += calories;
-        updateDailyTotal();
+      // Load daily and monthly calorie deficit from Firestore
+      async function loadCalorieData() {
+        const user = auth.currentUser;
+        if (!user) {
+          alert('You must be logged in to load data.');
+          return;
+        }
+
+        const today = new Date().toLocaleDateString();
+
+        // Load the daily data for the current day
+        const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
+        const dailyDocSnap = await getDoc(dailyDocRef);
+
+        if (dailyDocSnap.exists()) {
+          const data = dailyDocSnap.data();
+          dailyTotal = data.total;
+          document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+          highlightEatenMeals(data.eatenMeals || []);
+        } else {
+          // No daily data yet for today
+          dailyTotal = 0;
+          document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
+        }
+
+        // Load the monthly deficit data (for example purposes)
+        const monthlyDocRef = doc(db, `users/${user.uid}/calorieData`, 'monthly');
+        const monthlyDocSnap = await getDoc(monthlyDocRef);
+
+        if (monthlyDocSnap.exists()) {
+          alert(`Monthly deficit so far: ${monthlyDocSnap.data().monthlyDeficit} kcal`);
+        } else {
+          alert('No monthly data available yet.');
+        }
       }
 
-      function updateDailyTotal() {
-        document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
-      }
-
-      // Save daily data to Firestore for the logged-in user
+      // Save daily data (overwrite today's record)
       async function saveDailyData() {
         const user = auth.currentUser;
         if (!user) {
@@ -162,14 +116,28 @@
         }
 
         const deficit = dailyLimit - dailyTotal;
-        const date = new Date().toLocaleDateString();
+        const today = new Date().toLocaleDateString();
 
         try {
-          await addDoc(collection(db, `users/${user.uid}/calorieData`), {
-            date: date,
+          // Update or create the document for today's date
+          await setDoc(doc(db, `users/${user.uid}/calorieData`, today), {
+            date: today,
             total: dailyTotal,
-            deficit: deficit
+            deficit: deficit,
+            eatenMeals: selectedMeals
           });
+
+          // Update or create the monthly deficit record
+          const monthlyDocRef = doc(db, `users/${user.uid}/calorieData`, 'monthly');
+          const monthlyDocSnap = await getDoc(monthlyDocRef);
+          let monthlyDeficit = deficit;
+
+          if (monthlyDocSnap.exists()) {
+            monthlyDeficit += monthlyDocSnap.data().monthlyDeficit;
+          }
+
+          await setDoc(monthlyDocRef, { monthlyDeficit });
+
           alert('Data saved successfully');
         } catch (error) {
           console.error("Error saving document: ", error);
@@ -177,30 +145,27 @@
         }
       }
 
-      // Show monthly calorie deficit data for the logged-in user only
-      async function showMonthlyDeficit() {
-        const user = auth.currentUser;
-        if (!user) {
-          alert('You must be logged in to view your data.');
-          return;
-        }
+      // Track selected meals for the day
+      let selectedMeals = [];
 
-        try {
-          const querySnapshot = await getDocs(collection(db, `users/${user.uid}/calorieData`));
-          let results = "";
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            results += `Date: ${data.date}, Deficit: ${data.deficit} kcal\n`;
-          });
-          if (results) {
-            alert(results);
-          } else {
-            alert("No data available for this user.");
+      function addCalories(meal) {
+        dailyTotal += meal.calories;
+        selectedMeals.push(meal.name);
+        updateDailyTotal();
+      }
+
+      function highlightEatenMeals(eatenMeals) {
+        selectedMeals = eatenMeals;
+        eatenMeals.forEach(mealName => {
+          const button = document.querySelector(`[data-meal="${mealName}"]`);
+          if (button) {
+            button.classList.add('selected');
           }
-        } catch (error) {
-          console.error("Error retrieving documents: ", error);
-          alert('Failed to fetch data');
-        }
+        });
+      }
+
+      function updateDailyTotal() {
+        document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
       }
 
       // Render meal buttons dynamically
@@ -210,7 +175,11 @@
           const button = document.createElement('button');
           button.textContent = `${meal.name} - ${meal.calories} kcal`;
           button.className = "button";
-          button.onclick = () => addCalories(meal.calories);
+          button.dataset.meal = meal.name;
+          button.onclick = () => {
+            addCalories(meal);
+            button.classList.add('selected');
+          };
           mealContainer.appendChild(button);
         });
       }
@@ -219,8 +188,10 @@
       document.addEventListener('DOMContentLoaded', () => {
         handleRedirectResult(); // Handle Google redirect result on page load
         renderMealButtons();
+        loadCalorieData(); // Load existing daily and monthly data
+
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
-        document.getElementById('show-monthly-btn').addEventListener('click', showMonthlyDeficit);
+        document.getElementById('show-monthly-btn').addEventListener('click', loadCalorieData);
 
         // Add event listeners for login and register buttons
         document.getElementById('login-btn').addEventListener('click', () => {
