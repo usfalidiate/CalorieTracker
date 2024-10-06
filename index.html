@@ -221,6 +221,18 @@
 
         document.getElementById('logout-btn').addEventListener('click', logoutUser);
       });
+
+
+      // Logout Function
+export async function logoutUser() {
+  try {
+    await signOut(auth);
+    alert("You have logged out.");
+  } catch (error) {
+    alert("Error logging out: " + error.message);
+  }
+}
+
     </script>
   </div>
 </body>
