@@ -18,6 +18,18 @@ body {
   background-color: #005f73;
 }
 
+/* Highlight selected meals */
+button.selected {
+  background-color: #4CAF50; /* Green background when selected */
+  color: white; /* White text when selected */
+  border: 2px solid #4CAF50; /* A solid border to make it stand out */
+}
+
+/* Optional hover effect for all buttons */
+button:hover {
+  opacity: 0.8; /* Slight transparency when hovered */
+}
+
 /* Style the dropdown button */
 .toggle-button {
   display: block;
