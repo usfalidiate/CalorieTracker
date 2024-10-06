@@ -249,6 +249,19 @@ document.getElementById('toggle-login-menu').addEventListener('click', () => {
 });
 
 
+      // Register new user with Email/Password
+export async function registerUser(email, password) {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    alert(`Registration successful for user: ${user.email}`);
+  } catch (error) {
+    alert(`Error registering: ${error.message}`);
+  }
+}
+
+
+
     </script>
   </div>
 </body>
