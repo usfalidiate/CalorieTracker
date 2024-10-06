@@ -52,6 +52,9 @@
     <button id="save-data-btn" class="button" style="display:none;" disabled>Save Today's Data</button>
     <button id="show-monthly-btn" class="button" style="display:none;" disabled>Show Monthly Deficit</button>
 
+    <!-- Logout Button -->
+    <button id="logout-btn" class="button" style="display:none;">Logout</button>
+
     <script type="module">
       // Firebase and Firestore imports
       import { db } from './firebase.js';
@@ -80,6 +83,7 @@
           const dailyTotalDiv = document.getElementById('daily-total');
           const saveDataBtn = document.getElementById('save-data-btn');
           const showMonthlyBtn = document.getElementById('show-monthly-btn');
+          const logoutBtn = document.getElementById('logout-btn');
           
           if (user) {
             // User is logged in
@@ -88,6 +92,7 @@
             dailyTotalDiv.style.display = 'block';
             saveDataBtn.style.display = 'block';
             showMonthlyBtn.style.display = 'block';
+            logoutBtn.style.display = 'block';
             saveDataBtn.disabled = false;
             showMonthlyBtn.disabled = false;
 
@@ -98,6 +103,7 @@
             loginScreen.style.display = 'block';
             saveDataBtn.disabled = true;
             showMonthlyBtn.disabled = true;
+            logoutBtn.style.display = 'none';
           }
         });
       }
@@ -127,6 +133,8 @@
           const password = document.getElementById('register-password').value;
           registerUser(email, password);
         });
+
+        document.getElementById('logout-btn').addEventListener('click', logoutUser);
 
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
         document.getElementById('show-monthly-btn').addEventListener('click', loadCalorieData);
