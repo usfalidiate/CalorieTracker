@@ -71,6 +71,19 @@
       const dailyLimit = 2400;
       const oneKgDeficit = 7700;
 
+      // Handle the result after Google Sign-In Redirect
+      async function handleRedirectResult() {
+        try {
+          const result = await getRedirectResult(auth);
+          if (result) {
+            const user = result.user;
+            alert(`Signed in as ${user.displayName}`);
+          }
+        } catch (error) {
+          console.error("Error handling redirect result: ", error);
+        }
+      }
+
       // Load daily and monthly calorie deficit from Firestore
       async function loadCalorieData() {
         const user = auth.currentUser;
