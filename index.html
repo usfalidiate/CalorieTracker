@@ -223,42 +223,59 @@
         }
       }
 
-      // Track selected meals for the day
-      function addCalories(meal) {
-        dailyTotal += meal.calories;
-        selectedMeals.push(meal.name);
-        updateDailyTotal();
-      }
+// Add or remove calories when meal is selected or deselected
+function addOrRemoveCalories(meal, button) {
+  if (selectedMeals.includes(meal.name)) {
+    // Remove calories if the meal is already selected
+    dailyTotal -= meal.calories;
+    selectedMeals = selectedMeals.filter(m => m !== meal.name);
+    button.classList.remove('selected');
+  } else {
+    // Add calories if the meal is not selected
+    dailyTotal += meal.calories;
+    selectedMeals.push(meal.name);
+    button.classList.add('selected');
+  }
+  updateDailyTotal();
+}
 
-      function highlightEatenMeals(eatenMeals) {
-        selectedMeals = eatenMeals;
-        eatenMeals.forEach(mealName => {
-          const button = document.querySelector(`[data-meal="${mealName}"]`);
-          if (button) {
-            button.classList.add('selected');
-          }
-        });
-      }
 
-      function updateDailyTotal() {
-        document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
-      }
+// Highlight previously eaten meals for the day
+function highlightEatenMeals(eatenMeals) {
+  selectedMeals = eatenMeals;
+  eatenMeals.forEach(mealName => {
+    const button = document.querySelector(`[data-meal="${mealName}"]`);
+    if (button) {
+      button.classList.add('selected');
+    }
+  });
+}
 
-      // Render meal buttons dynamically
-      function renderMealButtons() {
-        const mealContainer = document.getElementById('meal-container');
-        meals.forEach(meal => {
-          const button = document.createElement('button');
-          button.textContent = `${meal.name} - ${meal.calories} kcal`;
-          button.className = "button";
-          button.dataset.meal = meal.name;
-          button.onclick = () => {
-            addCalories(meal);
-            button.classList.add('selected');
-          };
-          mealContainer.appendChild(button);
-        });
-      }
+
+// Update the display for daily total and deficit
+function updateDailyTotal() {
+  document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+}
+
+
+// Render meal buttons dynamically and attach event listeners
+function renderMealButtons() {
+  const mealContainer = document.getElementById('meal-container');
+  meals.forEach(meal => {
+    const button = document.createElement('button');
+    button.textContent = `${meal.name} - ${meal.calories} kcal`;
+    button.className = "button";
+    button.dataset.meal = meal.name;
+    
+    // Toggle add/remove calories when button is clicked
+    button.onclick = () => {
+      addOrRemoveCalories(meal, button);
+    };
+
+    mealContainer.appendChild(button);
+  });
+}
+
 
       // Login user with Email/Password
       async function loginUser(email, password) {
