@@ -144,46 +144,50 @@
       });
 
       // Load daily and monthly calorie deficit from Firestore
-      async function loadCalorieData() {
-        const user = auth.currentUser;
-        if (!user) {
-          showFeedback('You must be logged in to load data.', true);
-          return;
-        }
+async function loadCalorieData() {
+    const user = auth.currentUser;
+    if (!user) {
+        showFeedback('You must be logged in to load data.', true);
+        return;
+    }
 
-        const today = new Date().toLocaleDateString();
+    const today = new Date().toLocaleDateString();
 
-        // Load the daily data for the current day
-        const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
-        const dailyDocSnap = await getDoc(dailyDocRef);
+    // Load the daily data for the current day
+    const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
+    const dailyDocSnap = await getDoc(dailyDocRef);
 
-        if (dailyDocSnap.exists()) {
-          const data = dailyDocSnap.data();
-          dailyTotal = data.total;
-          document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
-          highlightEatenMeals(data.eatenMeals || []);
-        } else {
-          // No daily data yet for today, create default
-          dailyTotal = 0;
-          await setDoc(dailyDocRef, {
+    if (dailyDocSnap.exists()) {
+        const data = dailyDocSnap.data();
+        dailyTotal = data.total;
+        selectedMeals = data.eatenMeals || [];  // Store the list of eaten meals
+        document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+
+        // Highlight the buttons for the meals that were eaten
+        highlightEatenMeals(selectedMeals);
+    } else {
+        // No daily data yet for today, create default
+        dailyTotal = 0;
+        await setDoc(dailyDocRef, {
             date: today,
             total: dailyTotal,
             deficit: dailyLimit - dailyTotal,
             eatenMeals: []
-          });
-          document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
-        }
+        });
+        document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
+    }
 
-        // Load the monthly deficit data
-        const monthlyDocRef = doc(db, `users/${user.uid}/calorieData`, 'monthly');
-        const monthlyDocSnap = await getDoc(monthlyDocRef);
+    // Load the monthly deficit data
+    const monthlyDocRef = doc(db, `users/${user.uid}/calorieData`, 'monthly');
+    const monthlyDocSnap = await getDoc(monthlyDocRef);
 
-        if (monthlyDocSnap.exists()) {
-          showFeedback(`Monthly deficit so far: ${monthlyDocSnap.data().monthlyDeficit} kcal`);
-        } else {
-          showFeedback('No monthly data available yet.');
-        }
-      }
+    if (monthlyDocSnap.exists()) {
+        showFeedback(`Monthly deficit so far: ${monthlyDocSnap.data().monthlyDeficit} kcal`);
+    } else {
+        showFeedback('No monthly data available yet.');
+    }
+}
+
 
       // Save daily data (overwrite today's record)
       async function saveDailyData() {
@@ -223,58 +227,61 @@
         }
       }
 
-// Add or remove calories when meal is selected or deselected
+// Add or remove calories when a meal is selected or deselected
 function addOrRemoveCalories(meal, button) {
-  if (selectedMeals.includes(meal.name)) {
-    // Remove calories if the meal is already selected
-    dailyTotal -= meal.calories;
-    selectedMeals = selectedMeals.filter(m => m !== meal.name);
-    button.classList.remove('selected');
-  } else {
-    // Add calories if the meal is not selected
-    dailyTotal += meal.calories;
-    selectedMeals.push(meal.name);
-    button.classList.add('selected');
-  }
-  updateDailyTotal();
+    if (selectedMeals.includes(meal.name)) {
+        // Remove calories if the meal is already selected
+        dailyTotal -= meal.calories;
+        selectedMeals = selectedMeals.filter(m => m !== meal.name);
+        button.classList.remove('selected');
+    } else {
+        // Add calories if the meal is not selected
+        dailyTotal += meal.calories;
+        selectedMeals.push(meal.name);
+        button.classList.add('selected');
+    }
+    updateDailyTotal();
 }
+
 
 
 // Highlight previously eaten meals for the day
 function highlightEatenMeals(eatenMeals) {
-  selectedMeals = eatenMeals;
-  eatenMeals.forEach(mealName => {
-    const button = document.querySelector(`[data-meal="${mealName}"]`);
-    if (button) {
-      button.classList.add('selected');
-    }
-  });
+    selectedMeals = eatenMeals;
+    eatenMeals.forEach(mealName => {
+        const button = document.querySelector(`[data-meal="${mealName}"]`);
+        if (button) {
+            button.classList.add('selected');
+        }
+    });
 }
+
 
 
 // Update the display for daily total and deficit
 function updateDailyTotal() {
-  document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+    document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
 }
 
 
 // Render meal buttons dynamically and attach event listeners
 function renderMealButtons() {
-  const mealContainer = document.getElementById('meal-container');
-  meals.forEach(meal => {
-    const button = document.createElement('button');
-    button.textContent = `${meal.name} - ${meal.calories} kcal`;
-    button.className = "button";
-    button.dataset.meal = meal.name;
-    
-    // Toggle add/remove calories when button is clicked
-    button.onclick = () => {
-      addOrRemoveCalories(meal, button);
-    };
+    const mealContainer = document.getElementById('meal-container');
+    meals.forEach(meal => {
+        const button = document.createElement('button');
+        button.textContent = `${meal.name} - ${meal.calories} kcal`;
+        button.className = "button";
+        button.dataset.meal = meal.name;
+        
+        // Toggle add/remove calories when button is clicked
+        button.onclick = () => {
+            addOrRemoveCalories(meal, button);
+        };
 
-    mealContainer.appendChild(button);
-  });
+        mealContainer.appendChild(button);
+    });
 }
+
 
 
       // Login user with Email/Password
