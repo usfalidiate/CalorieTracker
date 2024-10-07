@@ -222,9 +222,19 @@ async function calculateCumulativeDeficit() {
         }
     });
 
+    // Display the cumulative deficit
     document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
     document.getElementById('cumulative-deficit').style.display = 'block';
+
+    // Store the cumulative deficit in Firestore
+    try {
+        await setDoc(doc(db, `users/${user.uid}`), { cumulativeDeficit: cumulativeDeficit }, { merge: true });
+    } catch (error) {
+        console.error("Error saving cumulative deficit: ", error);
+        showFeedback('Failed to save cumulative deficit.', true);
+    }
 }
+
 
 
 
