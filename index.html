@@ -232,33 +232,41 @@ async function calculateCumulativeDeficit() {
 
       
 
-      async function saveDailyData() {
-        const user = auth.currentUser;
-        if (!user) {
-          showFeedback('You must be logged in to save data.', true);
-          return;
-        }
+async function saveDailyData() {
+    const user = auth.currentUser;
+    if (!user) {
+        showFeedback('You must be logged in to save data.', true);
+        return;
+    }
 
-        const deficit = dailyLimit - dailyTotal;
-        const today = new Date().toLocaleDateString();
+    const deficit = dailyLimit - dailyTotal;
+    const today = new Date().toLocaleDateString();
 
-        try {
-          await setDoc(doc(db, `users/${user.uid}/calorieData`, today), {
+    try {
+        await setDoc(doc(db, `users/${user.uid}/calorieData`, today), {
             date: today,
             total: dailyTotal,
             deficit: deficit,
             eatenMeals: selectedMeals
-          });
+        });
 
-          alert('Data saved successfully');
-          showFeedback('Data saved successfully');
-        } catch (error) {
-          console.error("Error saving document: ", error);
-          alert('Failed to save data');
-          showFeedback('Failed to save data', true);
-        }
-      }
+        alert('Data saved successfully');
+        showFeedback('Data saved successfully');
 
+        // Update cumulative deficit after saving data
+        calculateCumulativeDeficit();
+    } catch (error) {
+        console.error("Error saving document: ", error);
+        alert('Failed to save data');
+        showFeedback('Failed to save data', true);
+    }
+}
+
+
+
+
+
+      
       function addOrRemoveCalories(meal, button) {
         if (selectedMeals.includes(meal.name)) {
           dailyTotal -= meal.calories;
