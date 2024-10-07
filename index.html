@@ -180,43 +180,57 @@
         }
       }
 
-      async function calculateCumulativeDeficit() {
-        const user = auth.currentUser;
-        if (!user) {
-          showFeedback('You must be logged in to calculate cumulative deficit.', true);
-          return;
-        }
 
-        const startDate = document.getElementById('start-date').value;
-        if (!startDate) {
-          alert("Please select a start date.");
-          return;
-        }
 
-        try {
-          await setDoc(doc(db, `users/${user.uid}`), { startDate }, { merge: true });
-        } catch (error) {
-          console.error("Error saving start date: ", error);
-          showFeedback('Failed to save start date.', true);
-        }
 
-        let cumulativeDeficit = 0;
-        const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
-        const snapshot = await getDocs(calorieDataRef);
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.date) {
-            const recordDate = new Date(data.date).toISOString().split('T')[0];
+async function calculateCumulativeDeficit() {
+    const user = auth.currentUser;
+    if (!user) {
+        showFeedback('You must be logged in to calculate cumulative deficit.', true);
+        return;
+    }
+
+    const startDate = new Date(document.getElementById('start-date').value);
+    if (isNaN(startDate)) {
+        alert("Please select a start date.");
+        return;
+    }
+
+    try {
+        await setDoc(doc(db, `users/${user.uid}`), { startDate: startDate.toISOString().split('T')[0] }, { merge: true });
+    } catch (error) {
+        console.error("Error saving start date: ", error);
+        showFeedback('Failed to save start date.', true);
+        return;
+    }
+
+    let cumulativeDeficit = 0;
+    const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
+    const snapshot = await getDocs(calorieDataRef);
+
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        
+        if (data.date) {
+            const recordDateParts = data.date.split('/');
+            const recordDate = new Date(`${recordDateParts[2]}-${recordDateParts[1]}-${recordDateParts[0]}`);
+
             if (recordDate >= startDate) {
-              cumulativeDeficit += data.deficit;
+                cumulativeDeficit += data.deficit || 0;
             }
-          }
-        });
+        }
+    });
 
-        document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
-        document.getElementById('cumulative-deficit').style.display = 'block';
-      }
+    document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
+    document.getElementById('cumulative-deficit').style.display = 'block';
+}
+
+
+
+
+
+      
 
       async function saveDailyData() {
         const user = auth.currentUser;
