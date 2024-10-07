@@ -191,19 +191,13 @@ async function calculateCumulativeDeficit() {
         return;
     }
 
-    const startDate = new Date(document.getElementById('start-date').value);
-    if (isNaN(startDate)) {
+    const startDateInput = document.getElementById('start-date').value;
+    if (!startDateInput) {
         alert("Please select a start date.");
         return;
     }
 
-    try {
-        await setDoc(doc(db, `users/${user.uid}`), { startDate: startDate.toISOString().split('T')[0] }, { merge: true });
-    } catch (error) {
-        console.error("Error saving start date: ", error);
-        showFeedback('Failed to save start date.', true);
-        return;
-    }
+    const startDate = new Date(startDateInput);
 
     let cumulativeDeficit = 0;
     const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
@@ -211,10 +205,9 @@ async function calculateCumulativeDeficit() {
 
     snapshot.forEach(doc => {
         const data = doc.data();
-        
+
         if (data.date) {
-            const recordDateParts = data.date.split('/');
-            const recordDate = new Date(`${recordDateParts[2]}-${recordDateParts[1]}-${recordDateParts[0]}`);
+            const recordDate = new Date(data.date); // Assumes date in YYYY-MM-DD format
 
             if (recordDate >= startDate) {
                 cumulativeDeficit += data.deficit || 0;
@@ -226,7 +219,7 @@ async function calculateCumulativeDeficit() {
     document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
     document.getElementById('cumulative-deficit').style.display = 'block';
 
-    // Store the cumulative deficit in Firestore
+    // Optionally, save cumulativeDeficit to Firestore if needed elsewhere
     try {
         await setDoc(doc(db, `users/${user.uid}`), { cumulativeDeficit: cumulativeDeficit }, { merge: true });
     } catch (error) {
@@ -234,6 +227,7 @@ async function calculateCumulativeDeficit() {
         showFeedback('Failed to save cumulative deficit.', true);
     }
 }
+
 
 
 
@@ -250,7 +244,7 @@ async function saveDailyData() {
     }
 
     const deficit = dailyLimit - dailyTotal;
-    const today = new Date().toLocaleDateString();
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
     try {
         await setDoc(doc(db, `users/${user.uid}/calorieData`, today), {
@@ -272,6 +266,7 @@ async function saveDailyData() {
         showFeedback('Failed to save data', true);
     }
 }
+
 
 
 
