@@ -49,9 +49,17 @@
     <div id="meal-container" style="display:none;"></div>
     <div id="daily-total" style="display:none;">Daily Total: 0 kcal</div>
 
+    
+    <!-- Dropdown for selecting the start date -->
+    <label for="start-date">Select Start Date for Cumulative Deficit:</label>
+    <input type="date" id="start-date" class="input-field">
+    
+    <!-- Display for cumulative deficit -->
+    <div id="cumulative-deficit" style="display:none;">Cumulative Deficit: 0 kcal</div>
+
+    
     <!-- Buttons for saving data and showing monthly deficit -->
     <button id="save-data-btn" class="button" style="display:none;" disabled>Save Today's Data</button>
-    <button id="show-monthly-btn" class="button" style="display:none;" disabled>Show Monthly Deficit</button>
 
     <!-- Logout Button -->
     <button id="logout-btn" class="button" style="display:none;">Logout</button>
@@ -188,44 +196,71 @@ async function loadCalorieData() {
     }
 }
 
+      // Function to calculate cumulative calorie deficit
+async function calculateCumulativeDeficit() {
+    const user = auth.currentUser;
+    if (!user) {
+        showFeedback('You must be logged in to calculate cumulative deficit.', true);
+        return;
+    }
 
-      // Save daily data (overwrite today's record)
-      async function saveDailyData() {
-        const user = auth.currentUser;
-        if (!user) {
-          showFeedback('You must be logged in to save data.', true);
-          return;
+    const startDate = document.getElementById('start-date').value;
+    if (!startDate) {
+        alert("Please select a start date.");
+        return;
+    }
+
+    let cumulativeDeficit = 0;
+    const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
+    const snapshot = await getDocs(calorieDataRef);
+
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        const recordDate = new Date(data.date).toISOString().split('T')[0];
+        
+        if (recordDate >= startDate && doc.id !== 'monthly') {
+            cumulativeDeficit += data.deficit;
         }
+    });
 
-        const deficit = dailyLimit - dailyTotal;
-        const today = new Date().toLocaleDateString();
+    document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
+    document.getElementById('cumulative-deficit').style.display = 'block';
+}
 
-        try {
-          // Update or create the document for today's date
-          await setDoc(doc(db, `users/${user.uid}/calorieData`, today), {
+// Event listener to recalculate cumulative deficit when the start date is changed
+document.getElementById('start-date').addEventListener('change', calculateCumulativeDeficit);
+
+
+
+// Save daily data (overwrite today's record) and show alert on success or failure
+async function saveDailyData() {
+    const user = auth.currentUser;
+    if (!user) {
+        showFeedback('You must be logged in to save data.', true);
+        return;
+    }
+
+    const deficit = dailyLimit - dailyTotal;
+    const today = new Date().toLocaleDateString();
+
+    try {
+        // Update or create the document for today's date
+        await setDoc(doc(db, `users/${user.uid}/calorieData`, today), {
             date: today,
             total: dailyTotal,
             deficit: deficit,
             eatenMeals: selectedMeals
-          });
+        });
 
-          // Update or create the monthly deficit record
-          const monthlyDocRef = doc(db, `users/${user.uid}/calorieData`, 'monthly');
-          const monthlyDocSnap = await getDoc(monthlyDocRef);
-          let monthlyDeficit = deficit;
+        alert('Data saved successfully'); // Alert for success
+        showFeedback('Data saved successfully');
+    } catch (error) {
+        console.error("Error saving document: ", error);
+        alert('Failed to save data'); // Alert for failure
+        showFeedback('Failed to save data', true);
+    }
+}
 
-          if (monthlyDocSnap.exists()) {
-            monthlyDeficit += monthlyDocSnap.data().monthlyDeficit;
-          }
-
-          await setDoc(monthlyDocRef, { monthlyDeficit });
-
-          showFeedback('Data saved successfully');
-        } catch (error) {
-          console.error("Error saving document: ", error);
-          showFeedback('Failed to save data', true);
-        }
-      }
 
 // Add or remove calories when a meal is selected or deselected
 function addOrRemoveCalories(meal, button) {
