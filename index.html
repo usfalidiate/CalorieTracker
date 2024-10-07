@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -49,7 +48,6 @@
     <div id="meal-container" style="display:none;"></div>
     <div id="daily-total" style="display:none;">Daily Total: 0 kcal</div>
 
-    
     <!-- Dropdown for selecting the start date -->
     <label for="start-date">Select Start Date for Cumulative Deficit:</label>
     <input type="date" id="start-date" class="input-field">
@@ -57,8 +55,7 @@
     <!-- Display for cumulative deficit -->
     <div id="cumulative-deficit" style="display:none;">Cumulative Deficit: 0 kcal</div>
 
-    
-    <!-- Buttons for saving data and showing monthly deficit -->
+    <!-- Buttons for saving data -->
     <button id="save-data-btn" class="button" style="display:none;" disabled>Save Today's Data</button>
 
     <!-- Logout Button -->
@@ -91,7 +88,6 @@
           const mealContainer = document.getElementById('meal-container');
           const dailyTotalDiv = document.getElementById('daily-total');
           const saveDataBtn = document.getElementById('save-data-btn');
-          const showMonthlyBtn = document.getElementById('show-monthly-btn');
           const logoutBtn = document.getElementById('logout-btn');
           
           if (user) {
@@ -100,19 +96,18 @@
             mealContainer.style.display = 'block';
             dailyTotalDiv.style.display = 'block';
             saveDataBtn.style.display = 'block';
-            showMonthlyBtn.style.display = 'block';
             logoutBtn.style.display = 'block';
             saveDataBtn.disabled = false;
-            showMonthlyBtn.disabled = false;
 
             // Load calorie data after login
             loadCalorieData();
+            renderMealButtons();
           } else {
             // User is not logged in, show login screen
             loginScreen.style.display = 'block';
             saveDataBtn.disabled = true;
-            showMonthlyBtn.disabled = true;
             logoutBtn.style.display = 'none';
+            mealContainer.style.display = 'none';  // Hide meal container when not logged in
           }
         });
       }
@@ -120,6 +115,12 @@
       document.addEventListener('DOMContentLoaded', () => {
         // Initialize Firebase authentication state
         initializeAuthState();
+
+        // Add Event Listener for Date Change
+        const startDateInput = document.getElementById('start-date');
+        if (startDateInput) {
+          startDateInput.addEventListener('change', calculateCumulativeDeficit);
+        }
 
         // Google Sign-In with Redirect
         document.getElementById('google-signin-btn').addEventListener('click', async () => {
@@ -144,180 +145,153 @@
         });
 
         document.getElementById('logout-btn').addEventListener('click', logoutUser);
-
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
-        document.getElementById('show-monthly-btn').addEventListener('click', loadCalorieData);
-
-        renderMealButtons(); // Render meal buttons after the DOM is loaded
       });
 
-      // Load daily and monthly calorie deficit from Firestore
-async function loadCalorieData() {
-    const user = auth.currentUser;
-    if (!user) {
-        showFeedback('You must be logged in to load data.', true);
-        return;
-    }
+      // Load daily and cumulative calorie deficit from Firestore
+      async function loadCalorieData() {
+        const user = auth.currentUser;
+        if (!user) {
+            showFeedback('You must be logged in to load data.', true);
+            return;
+        }
 
-    const today = new Date().toLocaleDateString();
+        const today = new Date().toLocaleDateString();
 
-    // Load the daily data for the current day
-    const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
-    const dailyDocSnap = await getDoc(dailyDocRef);
+        // Load the daily data for the current day
+        const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
+        const dailyDocSnap = await getDoc(dailyDocRef);
 
-    if (dailyDocSnap.exists()) {
-        const data = dailyDocSnap.data();
-        dailyTotal = data.total;
-        selectedMeals = data.eatenMeals || [];  // Store the list of eaten meals
-        document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+        if (dailyDocSnap.exists()) {
+            const data = dailyDocSnap.data();
+            dailyTotal = data.total;
+            selectedMeals = data.eatenMeals || [];  // Store the list of eaten meals
+            document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
 
-        // Highlight the buttons for the meals that were eaten
-        highlightEatenMeals(selectedMeals);
-    } else {
-        // No daily data yet for today, create default
-        dailyTotal = 0;
-        await setDoc(dailyDocRef, {
-            date: today,
-            total: dailyTotal,
-            deficit: dailyLimit - dailyTotal,
-            eatenMeals: []
-        });
-        document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
-    }
-
-    // Load the monthly deficit data
-    const monthlyDocRef = doc(db, `users/${user.uid}/calorieData`, 'monthly');
-    const monthlyDocSnap = await getDoc(monthlyDocRef);
-
-    if (monthlyDocSnap.exists()) {
-        showFeedback(`Monthly deficit so far: ${monthlyDocSnap.data().monthlyDeficit} kcal`);
-    } else {
-        showFeedback('No monthly data available yet.');
-    }
-}
+            // Highlight the buttons for the meals that were eaten
+            highlightEatenMeals(selectedMeals);
+        } else {
+            // No daily data yet for today, create default
+            dailyTotal = 0;
+            await setDoc(dailyDocRef, {
+                date: today,
+                total: dailyTotal,
+                deficit: dailyLimit - dailyTotal,
+                eatenMeals: []
+            });
+            document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
+        }
+      }
 
       // Function to calculate cumulative calorie deficit
-async function calculateCumulativeDeficit() {
-    const user = auth.currentUser;
-    if (!user) {
-        showFeedback('You must be logged in to calculate cumulative deficit.', true);
-        return;
-    }
-
-    const startDate = document.getElementById('start-date').value;
-    if (!startDate) {
-        alert("Please select a start date.");
-        return;
-    }
-
-    let cumulativeDeficit = 0;
-    const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
-    const snapshot = await getDocs(calorieDataRef);
-
-    snapshot.forEach(doc => {
-        const data = doc.data();
-        const recordDate = new Date(data.date).toISOString().split('T')[0];
-        
-        if (recordDate >= startDate && doc.id !== 'monthly') {
-            cumulativeDeficit += data.deficit;
+      async function calculateCumulativeDeficit() {
+        const user = auth.currentUser;
+        if (!user) {
+          showFeedback('You must be logged in to calculate cumulative deficit.', true);
+          return;
         }
-    });
 
-    document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
-    document.getElementById('cumulative-deficit').style.display = 'block';
-}
+        const startDate = document.getElementById('start-date').value;
+        if (!startDate) {
+          alert("Please select a start date.");
+          return;
+        }
 
-// Event listener to recalculate cumulative deficit when the start date is changed
-document.getElementById('start-date').addEventListener('change', calculateCumulativeDeficit);
+        let cumulativeDeficit = 0;
+        const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
+        const snapshot = await getDocs(calorieDataRef);
 
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const recordDate = new Date(data.date).toISOString().split('T')[0];
 
+          if (recordDate >= startDate && doc.id !== 'monthly') {
+            cumulativeDeficit += data.deficit;
+          }
+        });
 
-// Save daily data (overwrite today's record) and show alert on success or failure
-async function saveDailyData() {
-    const user = auth.currentUser;
-    if (!user) {
-        showFeedback('You must be logged in to save data.', true);
-        return;
-    }
+        document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
+        document.getElementById('cumulative-deficit').style.display = 'block';
+      }
 
-    const deficit = dailyLimit - dailyTotal;
-    const today = new Date().toLocaleDateString();
+      // Save daily data (overwrite today's record) and show alert on success or failure
+      async function saveDailyData() {
+        const user = auth.currentUser;
+        if (!user) {
+          showFeedback('You must be logged in to save data.', true);
+          return;
+        }
 
-    try {
-        // Update or create the document for today's date
-        await setDoc(doc(db, `users/${user.uid}/calorieData`, today), {
+        const deficit = dailyLimit - dailyTotal;
+        const today = new Date().toLocaleDateString();
+
+        try {
+          // Update or create the document for today's date
+          await setDoc(doc(db, `users/${user.uid}/calorieData`, today), {
             date: today,
             total: dailyTotal,
             deficit: deficit,
             eatenMeals: selectedMeals
-        });
+          });
 
-        alert('Data saved successfully'); // Alert for success
-        showFeedback('Data saved successfully');
-    } catch (error) {
-        console.error("Error saving document: ", error);
-        alert('Failed to save data'); // Alert for failure
-        showFeedback('Failed to save data', true);
-    }
-}
-
-
-// Add or remove calories when a meal is selected or deselected
-function addOrRemoveCalories(meal, button) {
-    if (selectedMeals.includes(meal.name)) {
-        // Remove calories if the meal is already selected
-        dailyTotal -= meal.calories;
-        selectedMeals = selectedMeals.filter(m => m !== meal.name);
-        button.classList.remove('selected');
-    } else {
-        // Add calories if the meal is not selected
-        dailyTotal += meal.calories;
-        selectedMeals.push(meal.name);
-        button.classList.add('selected');
-    }
-    updateDailyTotal();
-}
-
-
-
-// Highlight previously eaten meals for the day
-function highlightEatenMeals(eatenMeals) {
-    selectedMeals = eatenMeals;
-    eatenMeals.forEach(mealName => {
-        const button = document.querySelector(`[data-meal="${mealName}"]`);
-        if (button) {
-            button.classList.add('selected');
+          alert('Data saved successfully'); // Alert for success
+          showFeedback('Data saved successfully');
+        } catch (error) {
+          console.error("Error saving document: ", error);
+          alert('Failed to save data'); // Alert for failure
+          showFeedback('Failed to save data', true);
         }
-    });
-}
+      }
 
+      // Add or remove calories when a meal is selected or deselected
+      function addOrRemoveCalories(meal, button) {
+        if (selectedMeals.includes(meal.name)) {
+          // Remove calories if the meal is already selected
+          dailyTotal -= meal.calories;
+          selectedMeals = selectedMeals.filter(m => m !== meal.name);
+          button.classList.remove('selected');
+        } else {
+          // Add calories if the meal is not selected
+          dailyTotal += meal.calories;
+          selectedMeals.push(meal.name);
+          button.classList.add('selected');
+        }
+        updateDailyTotal();
+      }
 
+      // Highlight previously eaten meals for the day
+      function highlightEatenMeals(eatenMeals) {
+        selectedMeals = eatenMeals;
+        eatenMeals.forEach(mealName => {
+          const button = document.querySelector(`[data-meal="${mealName}"]`);
+          if (button) {
+            button.classList.add('selected');
+          }
+        });
+      }
 
-// Update the display for daily total and deficit
-function updateDailyTotal() {
-    document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
-}
+      // Update the display for daily total and deficit
+      function updateDailyTotal() {
+        document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+      }
 
+      // Render meal buttons dynamically and attach event listeners
+      function renderMealButtons() {
+        const mealContainer = document.getElementById('meal-container');
+        meals.forEach(meal => {
+          const button = document.createElement('button');
+          button.textContent = `${meal.name} - ${meal.calories} kcal`;
+          button.className = "button";
+          button.dataset.meal = meal.name;
 
-// Render meal buttons dynamically and attach event listeners
-function renderMealButtons() {
-    const mealContainer = document.getElementById('meal-container');
-    meals.forEach(meal => {
-        const button = document.createElement('button');
-        button.textContent = `${meal.name} - ${meal.calories} kcal`;
-        button.className = "button";
-        button.dataset.meal = meal.name;
-        
-        // Toggle add/remove calories when button is clicked
-        button.onclick = () => {
+          // Toggle add/remove calories when button is clicked
+          button.onclick = () => {
             addOrRemoveCalories(meal, button);
-        };
+          };
 
-        mealContainer.appendChild(button);
-    });
-}
-
-
+          mealContainer.appendChild(button);
+        });
+      }
 
       // Login user with Email/Password
       async function loginUser(email, password) {
