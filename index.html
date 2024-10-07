@@ -193,51 +193,55 @@ async function loadCalorieData() {
 
       
 
- async function calculateCumulativeDeficit() {
-  const user = auth.currentUser;
-  if (!user) {
-    showFeedback('You must be logged in to calculate cumulative deficit.', true);
-    return;
-  }
+ // Function to calculate cumulative calorie deficit and save the selected start date
+async function calculateCumulativeDeficit() {
+    const user = auth.currentUser;
+    if (!user) {
+        showFeedback('You must be logged in to calculate cumulative deficit.', true);
+        return;
+    }
 
-  const startDate = document.getElementById('start-date').value;
-  if (!startDate) {
-    alert("Please select a start date.");
-    return;
-  }
+    const startDate = document.getElementById('start-date').value;
+    if (!startDate) {
+        alert("Please select a start date.");
+        return;
+    }
 
-  // Save the selected start date in Firestore
-  try {
-    await setDoc(doc(db, `users/${user.uid}`), { startDate }, { merge: true });
-  } catch (error) {
-    console.error("Error saving start date: ", error);
-    showFeedback('Failed to save start date.', true);
-    return; // Exit if start date saving fails
-  }
+    // Save the selected start date in Firestore
+    try {
+        await setDoc(doc(db, `users/${user.uid}`), { startDate }, { merge: true });
+    } catch (error) {
+        console.error("Error saving start date: ", error);
+        showFeedback('Failed to save start date.', true);
+    }
 
-  // Calculate the cumulative deficit from the selected start date
-  let cumulativeDeficit = 0;
-  try {
+    // Calculate the cumulative deficit from the selected start date
+    let cumulativeDeficit = 0;
     const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
     const snapshot = await getDocs(calorieDataRef);
 
+    // Debugging: Check each document’s data
     snapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.date) {
-        const recordDate = new Date(data.date).toISOString().split('T')[0];
-        if (recordDate >= startDate && doc.id !== 'monthly') {
-          cumulativeDeficit += data.deficit;
+        const data = doc.data();
+        console.log(`Document ID: ${doc.id}, Data:`, data);
+
+        if (data.date) {
+            const recordDate = new Date(data.date).toISOString().split('T')[0];
+            // Debugging: Check date comparison and deficit addition
+            console.log(`Record Date: ${recordDate}, Start Date: ${startDate}, Deficit: ${data.deficit}`);
+
+            if (recordDate >= startDate && doc.id !== 'monthly') {
+                cumulativeDeficit += data.deficit;
+                console.log(`Cumulative Deficit (Running Total): ${cumulativeDeficit}`);
+            }
         }
-      }
     });
 
+    // Update the UI with the cumulative deficit
     document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
     document.getElementById('cumulative-deficit').style.display = 'block';
-  } catch (error) {
-    console.error("Error calculating cumulative deficit: ", error);
-    showFeedback('Failed to calculate cumulative deficit.', true);
-  }
 }
+
 
 
 
