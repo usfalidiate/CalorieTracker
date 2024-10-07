@@ -193,8 +193,7 @@ async function loadCalorieData() {
 
       
 
- // Function to calculate cumulative calorie deficit and save the selected start date
-async function calculateCumulativeDeficit() {
+ async function calculateCumulativeDeficit() {
   const user = auth.currentUser;
   if (!user) {
     showFeedback('You must be logged in to calculate cumulative deficit.', true);
@@ -213,27 +212,33 @@ async function calculateCumulativeDeficit() {
   } catch (error) {
     console.error("Error saving start date: ", error);
     showFeedback('Failed to save start date.', true);
+    return; // Exit if start date saving fails
   }
 
   // Calculate the cumulative deficit from the selected start date
   let cumulativeDeficit = 0;
-  const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
-  const snapshot = await getDocs(calorieDataRef);
+  try {
+    const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
+    const snapshot = await getDocs(calorieDataRef);
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (data.date) {
-      const recordDate = new Date(data.date).toISOString().split('T')[0];
-      if (recordDate >= startDate && doc.id !== 'monthly') {
-        cumulativeDeficit += data.deficit;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.date) {
+        const recordDate = new Date(data.date).toISOString().split('T')[0];
+        if (recordDate >= startDate && doc.id !== 'monthly') {
+          cumulativeDeficit += data.deficit;
+        }
       }
-    }
-  });
+    });
 
-  // Update the UI with the cumulative deficit
-  document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
-  document.getElementById('cumulative-deficit').style.display = 'block';
+    document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
+    document.getElementById('cumulative-deficit').style.display = 'block';
+  } catch (error) {
+    console.error("Error calculating cumulative deficit: ", error);
+    showFeedback('Failed to calculate cumulative deficit.', true);
+  }
 }
+
 
 
       // Save daily data (overwrite today's record) and show alert on success or failure
