@@ -91,7 +91,6 @@
           const logoutBtn = document.getElementById('logout-btn');
           
           if (user) {
-            // User is logged in
             loginScreen.style.display = 'none';
             mealContainer.style.display = 'block';
             dailyTotalDiv.style.display = 'block';
@@ -99,30 +98,25 @@
             logoutBtn.style.display = 'block';
             saveDataBtn.disabled = false;
 
-            // Load calorie data after login
             loadCalorieData();
             renderMealButtons();
           } else {
-            // User is not logged in, show login screen
             loginScreen.style.display = 'block';
             saveDataBtn.disabled = true;
             logoutBtn.style.display = 'none';
-            mealContainer.style.display = 'none';  // Hide meal container when not logged in
+            mealContainer.style.display = 'none';
           }
         });
       }
 
       document.addEventListener('DOMContentLoaded', () => {
-        // Initialize Firebase authentication state
         initializeAuthState();
 
-        // Add Event Listener for Date Change
         const startDateInput = document.getElementById('start-date');
         if (startDateInput) {
           startDateInput.addEventListener('change', calculateCumulativeDeficit);
         }
 
-        // Google Sign-In with Redirect
         document.getElementById('google-signin-btn').addEventListener('click', async () => {
           try {
             await signInWithRedirect(auth, provider);
@@ -131,7 +125,6 @@
           }
         });
 
-        // Add event listeners for login and register buttons
         document.getElementById('login-btn').addEventListener('click', () => {
           const email = document.getElementById('login-email').value;
           const password = document.getElementById('login-password').value;
@@ -148,104 +141,83 @@
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
       });
 
-      // Load daily calorie data and saved start date from Firestore
-async function loadCalorieData() {
-  const user = auth.currentUser;
-  if (!user) {
-    showFeedback('You must be logged in to load data.', true);
-    return;
-  }
-
-  const today = new Date().toLocaleDateString();
-
-  // Load the daily data for the current day
-  const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
-  const dailyDocSnap = await getDoc(dailyDocRef);
-
-  if (dailyDocSnap.exists()) {
-    const data = dailyDocSnap.data();
-    dailyTotal = data.total;
-    selectedMeals = data.eatenMeals || [];
-    document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
-    highlightEatenMeals(selectedMeals);
-  } else {
-    dailyTotal = 0;
-    await setDoc(dailyDocRef, {
-      date: today,
-      total: dailyTotal,
-      deficit: dailyLimit - dailyTotal,
-      eatenMeals: []
-    });
-    document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
-  }
-
-  // Load the saved start date for cumulative deficit calculation
-  const userDocRef = doc(db, `users/${user.uid}`);
-  const userDocSnap = await getDoc(userDocRef);
-
-  if (userDocSnap.exists() && userDocSnap.data().startDate) {
-    const savedStartDate = userDocSnap.data().startDate;
-    document.getElementById('start-date').value = savedStartDate;
-    calculateCumulativeDeficit(); // Calculate deficit on load with saved date
-  }
-}
-
-
-      
-
- // Function to calculate cumulative calorie deficit and save the selected start date
-async function calculateCumulativeDeficit() {
-    const user = auth.currentUser;
-    if (!user) {
-        showFeedback('You must be logged in to calculate cumulative deficit.', true);
-        return;
-    }
-
-    const startDate = document.getElementById('start-date').value;
-    if (!startDate) {
-        alert("Please select a start date.");
-        return;
-    }
-
-    // Save the selected start date in Firestore
-    try {
-        await setDoc(doc(db, `users/${user.uid}`), { startDate }, { merge: true });
-    } catch (error) {
-        console.error("Error saving start date: ", error);
-        showFeedback('Failed to save start date.', true);
-    }
-
-    // Calculate the cumulative deficit from the selected start date
-    let cumulativeDeficit = 0;
-    const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
-    const snapshot = await getDocs(calorieDataRef);
-
-    // Debugging: Check each document’s data
-    snapshot.forEach(doc => {
-        const data = doc.data();
-        console.log(`Document ID: ${doc.id}, Data:`, data);
-
-        if (data.date) {
-            const recordDate = new Date(data.date).toISOString().split('T')[0];
-            // Debugging: Check date comparison and deficit addition
-            console.log(`Record Date: ${recordDate}, Start Date: ${startDate}, Deficit: ${data.deficit}`);
-
-            if (recordDate >= startDate && doc.id !== 'monthly') {
-                cumulativeDeficit += data.deficit;
-                console.log(`Cumulative Deficit (Running Total): ${cumulativeDeficit}`);
-            }
+      async function loadCalorieData() {
+        const user = auth.currentUser;
+        if (!user) {
+          showFeedback('You must be logged in to load data.', true);
+          return;
         }
-    });
 
-    // Update the UI with the cumulative deficit
-    document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
-    document.getElementById('cumulative-deficit').style.display = 'block';
-}
+        const today = new Date().toLocaleDateString();
 
+        const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
+        const dailyDocSnap = await getDoc(dailyDocRef);
 
+        if (dailyDocSnap.exists()) {
+          const data = dailyDocSnap.data();
+          dailyTotal = data.total;
+          selectedMeals = data.eatenMeals || [];
+          document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+          highlightEatenMeals(selectedMeals);
+        } else {
+          dailyTotal = 0;
+          await setDoc(dailyDocRef, {
+            date: today,
+            total: dailyTotal,
+            deficit: dailyLimit - dailyTotal,
+            eatenMeals: []
+          });
+          document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
+        }
 
+        const userDocRef = doc(db, `users/${user.uid}`);
+        const userDocSnap = await getDoc(userDocRef);
 
-      // Save daily data (overwrite today's record) and show alert on success or failure
+        if (userDocSnap.exists() && userDocSnap.data().startDate) {
+          const savedStartDate = userDocSnap.data().startDate;
+          document.getElementById('start-date').value = savedStartDate;
+          calculateCumulativeDeficit();
+        }
+      }
+
+      async function calculateCumulativeDeficit() {
+        const user = auth.currentUser;
+        if (!user) {
+          showFeedback('You must be logged in to calculate cumulative deficit.', true);
+          return;
+        }
+
+        const startDate = document.getElementById('start-date').value;
+        if (!startDate) {
+          alert("Please select a start date.");
+          return;
+        }
+
+        try {
+          await setDoc(doc(db, `users/${user.uid}`), { startDate }, { merge: true });
+        } catch (error) {
+          console.error("Error saving start date: ", error);
+          showFeedback('Failed to save start date.', true);
+        }
+
+        let cumulativeDeficit = 0;
+        const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
+        const snapshot = await getDocs(calorieDataRef);
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.date) {
+            const recordDate = new Date(data.date).toISOString().split('T')[0];
+            if (recordDate >= startDate) {
+              cumulativeDeficit += data.deficit;
+            }
+          }
+        });
+
+        document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
+        document.getElementById('cumulative-deficit').style.display = 'block';
+      }
+
       async function saveDailyData() {
         const user = auth.currentUser;
         if (!user) {
@@ -273,7 +245,6 @@ async function calculateCumulativeDeficit() {
         }
       }
 
-      // Add or remove calories when a meal is selected or deselected
       function addOrRemoveCalories(meal, button) {
         if (selectedMeals.includes(meal.name)) {
           dailyTotal -= meal.calories;
@@ -287,7 +258,6 @@ async function calculateCumulativeDeficit() {
         updateDailyTotal();
       }
 
-      // Highlight previously eaten meals for the day
       function highlightEatenMeals(eatenMeals) {
         selectedMeals = eatenMeals;
         eatenMeals.forEach(mealName => {
@@ -298,12 +268,10 @@ async function calculateCumulativeDeficit() {
         });
       }
 
-      // Update the display for daily total and deficit
       function updateDailyTotal() {
         document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
       }
 
-      // Render meal buttons dynamically and attach event listeners
       function renderMealButtons() {
         const mealContainer = document.getElementById('meal-container');
         meals.forEach(meal => {
@@ -320,18 +288,15 @@ async function calculateCumulativeDeficit() {
         });
       }
 
-      // Login user with Email/Password
       async function loginUser(email, password) {
         try {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
           showFeedback(`Login successful for user: ${user.email}`);
         } catch (error) {
           showFeedback(`Error logging in: ${error.message}`, true);
         }
       }
 
-      // Logout Function
       async function logoutUser() {
         try {
           await signOut(auth);
@@ -341,11 +306,9 @@ async function calculateCumulativeDeficit() {
         }
       }
 
-      // Register new user with Email/Password
       async function registerUser(email, password) {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
           showFeedback(`Registration successful for user: ${user.email}`);
         } catch (error) {
           showFeedback(`Error registering: ${error.message}`, true);
