@@ -263,14 +263,16 @@ async function saveDailyData() {
         alert('Data saved successfully');
         showFeedback('Data saved successfully');
 
-        // Update cumulative deficit after saving data
-        calculateCumulativeDeficit();
+        // Recalculate cumulative deficit immediately after saving
+        await calculateCumulativeDeficit();
+
     } catch (error) {
         console.error("Error saving document: ", error);
         alert('Failed to save data');
         showFeedback('Failed to save data', true);
     }
 }
+
 
 
 
