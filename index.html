@@ -149,7 +149,9 @@
 
 
 
-      async function loadCalorieData() {
+
+
+async function loadCalorieData() {
     const user = auth.currentUser;
     if (!user) {
         showFeedback('You must be logged in to load data.', true);
@@ -183,10 +185,14 @@
 
     if (userDocSnap.exists() && userDocSnap.data().startDate) {
         const savedStartDate = userDocSnap.data().startDate;
-        document.getElementById('start-date').value = savedStartDate;
-        calculateCumulativeDeficit();
+        document.getElementById('start-date').value = savedStartDate; // Load saved start date
+        await calculateCumulativeDeficit(); // Calculate after loading the start date
     }
 }
+
+
+
+      
 
 
 
@@ -203,6 +209,15 @@ async function calculateCumulativeDeficit() {
     const startDateInput = document.getElementById('start-date').value;
     if (!startDateInput) {
         alert("Please select a start date.");
+        return;
+    }
+
+    // Store start date to Firestore whenever it is updated
+    try {
+        await setDoc(doc(db, `users/${user.uid}`), { startDate: startDateInput }, { merge: true });
+    } catch (error) {
+        console.error("Error saving start date: ", error);
+        showFeedback('Failed to save start date.', true);
         return;
     }
 
@@ -233,6 +248,7 @@ async function calculateCumulativeDeficit() {
         showFeedback('Failed to save cumulative deficit.', true);
     }
 }
+
 
 
 
