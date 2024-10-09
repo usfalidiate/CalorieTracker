@@ -141,44 +141,50 @@
         document.getElementById('save-data-btn').addEventListener('click', saveDailyData);
       });
 
+
+
+
+
+
       async function loadCalorieData() {
-        const user = auth.currentUser;
-        if (!user) {
-          showFeedback('You must be logged in to load data.', true);
-          return;
-        }
+    const user = auth.currentUser;
+    if (!user) {
+        showFeedback('You must be logged in to load data.', true);
+        return;
+    }
 
-        const today = new Date().toLocaleDateString();
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
-        const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
-        const dailyDocSnap = await getDoc(dailyDocRef);
+    const dailyDocRef = doc(db, `users/${user.uid}/calorieData`, today);
+    const dailyDocSnap = await getDoc(dailyDocRef);
 
-        if (dailyDocSnap.exists()) {
-          const data = dailyDocSnap.data();
-          dailyTotal = data.total;
-          selectedMeals = data.eatenMeals || [];
-          document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
-          highlightEatenMeals(selectedMeals);
-        } else {
-          dailyTotal = 0;
-          await setDoc(dailyDocRef, {
+    if (dailyDocSnap.exists()) {
+        const data = dailyDocSnap.data();
+        dailyTotal = data.total;
+        selectedMeals = data.eatenMeals || [];
+        document.getElementById('daily-total').textContent = `Daily Total: ${dailyTotal} kcal (Deficit: ${dailyLimit - dailyTotal} kcal)`;
+        highlightEatenMeals(selectedMeals);
+    } else {
+        dailyTotal = 0;
+        await setDoc(dailyDocRef, {
             date: today,
             total: dailyTotal,
             deficit: dailyLimit - dailyTotal,
             eatenMeals: []
-          });
-          document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
-        }
+        });
+        document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
+    }
 
-        const userDocRef = doc(db, `users/${user.uid}`);
-        const userDocSnap = await getDoc(userDocRef);
+    const userDocRef = doc(db, `users/${user.uid}`);
+    const userDocSnap = await getDoc(userDocRef);
 
-        if (userDocSnap.exists() && userDocSnap.data().startDate) {
-          const savedStartDate = userDocSnap.data().startDate;
-          document.getElementById('start-date').value = savedStartDate;
-          calculateCumulativeDeficit();
-        }
-      }
+    if (userDocSnap.exists() && userDocSnap.data().startDate) {
+        const savedStartDate = userDocSnap.data().startDate;
+        document.getElementById('start-date').value = savedStartDate;
+        calculateCumulativeDeficit();
+    }
+}
+
 
 
 
@@ -197,7 +203,7 @@ async function calculateCumulativeDeficit() {
         return;
     }
 
-    const startDate = new Date(startDateInput);
+    const startDate = new Date(startDateInput); // Expected format: YYYY-MM-DD
 
     let cumulativeDeficit = 0;
     const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
@@ -207,19 +213,16 @@ async function calculateCumulativeDeficit() {
         const data = doc.data();
 
         if (data.date) {
-            const recordDate = new Date(data.date); // Assumes date in YYYY-MM-DD format
-
+            const recordDate = new Date(data.date); // Assumes date is in YYYY-MM-DD format
             if (recordDate >= startDate) {
                 cumulativeDeficit += data.deficit || 0;
             }
         }
     });
 
-    // Display the cumulative deficit
     document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
     document.getElementById('cumulative-deficit').style.display = 'block';
 
-    // Optionally, save cumulativeDeficit to Firestore if needed elsewhere
     try {
         await setDoc(doc(db, `users/${user.uid}`), { cumulativeDeficit: cumulativeDeficit }, { merge: true });
     } catch (error) {
@@ -227,6 +230,7 @@ async function calculateCumulativeDeficit() {
         showFeedback('Failed to save cumulative deficit.', true);
     }
 }
+
 
 
 
