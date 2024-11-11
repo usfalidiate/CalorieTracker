@@ -36,8 +36,7 @@
     <div id="meal-container" style="display:none;"></div>
     <div id="daily-total" style="display:none;">Daily Total: 0 kcal</div>
 
-    <!-- Display for cumulative deficit -->
-    <div id="cumulative-deficit" style="display:none;">Cumulative Calorie Deficit Since Start Date: 0 kcal</div>
+
 
     <!-- Buttons for saving data -->
     <button id="save-data-btn" class="button" style="display:none;" disabled>Save Data</button>
@@ -141,37 +140,9 @@
           document.getElementById('daily-total').textContent = `Daily Total: 0 kcal (Deficit: ${dailyLimit} kcal)`;
         }
 
-        await calculateCumulativeDeficit();
       }
 
-      async function calculateCumulativeDeficit() {
-        const user = auth.currentUser;
-        if (!user) {
-          showFeedback('You must be logged in to calculate cumulative deficit.', true);
-          return;
-        }
-
-        let cumulativeDeficit = 0;
-        const calorieDataRef = collection(db, `users/${user.uid}/calorieData`);
-        const snapshot = await getDocs(calorieDataRef);
-
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.date) {
-            cumulativeDeficit += data.deficit || 0;
-          }
-        });
-
-        document.getElementById('cumulative-deficit').textContent = `Cumulative Deficit: ${cumulativeDeficit} kcal`;
-        document.getElementById('cumulative-deficit').style.display = 'block';
-
-        try {
-          await setDoc(doc(db, `users/${user.uid}`), { cumulativeDeficit: cumulativeDeficit }, { merge: true });
-        } catch (error) {
-          console.error("Error saving cumulative deficit: ", error);
-          showFeedback('Failed to save cumulative deficit.', true);
-        }
-      }
+  
 
       async function saveDailyData() {
         const user = auth.currentUser;
@@ -195,7 +166,6 @@
           showFeedback('Data saved successfully');
 
           // Recalculate cumulative deficit immediately after saving
-          await calculateCumulativeDeficit();
 
         } catch (error) {
           console.error("Error saving document: ", error);
