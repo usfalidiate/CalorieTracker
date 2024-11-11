@@ -241,19 +241,21 @@
 
       function renderMealButtons() {
         const mealContainer = document.getElementById('meal-container');
+        mealContainer.innerHTML = ''; // Clear existing buttons to prevent duplication
         meals.forEach(meal => {
           const button = document.createElement('button');
           button.textContent = `${meal.name} - ${meal.calories} kcal`;
           button.className = "button";
           button.dataset.meal = meal.name;
-
+      
           button.onclick = () => {
             addOrRemoveCalories(meal, button);
           };
-
+      
           mealContainer.appendChild(button);
         });
       }
+
 
       async function loginUser(email, password) {
         try {
