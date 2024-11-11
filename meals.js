@@ -6,5 +6,6 @@ export const meals = [
   { name: "Chicken Sandwich", calories: 400 },
   { name: "Salad", calories: 150 },
   { name: "Pasta", calories: 500 },
+  { name: 'Large Skin Cap', calories: 101 },
   // Add more food items as needed
 ];
